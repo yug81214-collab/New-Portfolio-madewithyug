@@ -1,0 +1,259 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system definition.
+ *
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 1.25rem;
+  --background: #050505;
+  --foreground: #ffffff;
+  --card: #0b0f0f;
+  --card-foreground: #ffffff;
+  --popover: #0b0f0f;
+  --popover-foreground: #ffffff;
+  --primary: #016764;
+  --primary-foreground: #ffffff;
+  --secondary: #005958;
+  --secondary-foreground: #ffffff;
+  --muted: #0c1111;
+  --muted-foreground: rgba(255, 255, 255, 0.65);
+  --accent: #014848;
+  --accent-foreground: #ffffff;
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: #ffffff;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #016764;
+  --chart-1: #016764;
+  --chart-2: #2fd3c6;
+  --chart-3: #005958;
+  --chart-4: #7ef0e2;
+  --chart-5: #014848;
+  --sidebar: #0b0f0f;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #016764;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #014848;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #016764;
+}
+
+@theme {
+  --font-sans:
+    "Geist", "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui,
+    sans-serif;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: #016764;
+    color: #fff;
+  }
+}
+
+@utility glass {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.13),
+    rgba(255, 255, 255, 0.055)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(26px) saturate(150%);
+}
+
+/* Light "Apple Glass" panel — near-white frosted surface */
+@utility glass-light {
+  background: linear-gradient(
+    150deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(244, 247, 249, 0.86)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(30px) saturate(160%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 24px 60px -30px rgba(0, 0, 0, 0.75);
+}
+
+@utility glow-teal {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 30px 80px -30px rgba(1, 103, 100, 0.85);
+}
+
+@utility text-balance-tight {
+  text-wrap: balance;
+  letter-spacing: -0.035em;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+
+@utility inner-glow {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -8px 20px -8px rgba(126, 240, 226, 0.45),
+    0 18px 45px -18px rgba(1, 103, 100, 0.95),
+    0 6px 18px -8px rgba(0, 0, 0, 0.9);
+}
+
+@utility inner-glow-soft {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -10px 24px -12px rgba(126, 240, 226, 0.25),
+    0 16px 40px -20px rgba(0, 0, 0, 0.9);
+}
+
+/* Highlighted words: no box, just a soft teal tint + gentle glow */
+@utility highlight {
+  color: #9df0e4;
+  text-shadow: 0 0 14px rgba(47, 211, 198, 0.22);
+}
+
+@utility text-glow {
+  text-shadow: 0 0 16px rgba(47, 211, 198, 0.22);
+}
+
+/* Radial-gradient CTA buttons (dark + light variations) */
+@utility btn-radial {
+  background: radial-gradient(
+    120% 140% at 30% 0%,
+    #0aa79f 0%,
+    #016764 45%,
+    #013b3a 100%
+  );
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 18px 44px -22px rgba(1, 103, 100, 0.9);
+  transition: filter 0.3s ease;
+  &:hover {
+    filter: brightness(1.12);
+  }
+}
+
+@utility btn-radial-light {
+  background: radial-gradient(
+    120% 140% at 30% 0%,
+    #ffffff 0%,
+    #e9f7f5 48%,
+    #bfe5e0 100%
+  );
+  color: #04302f;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 18px 44px -24px rgba(0, 0, 0, 0.7);
+  transition: filter 0.3s ease;
+  &:hover {
+    filter: brightness(1.04);
+  }
+}
+
+@utility perspective-stage {
+  perspective: 1400px;
+  transform-style: preserve-3d;
+}
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+@utility animate-float {
+  animation: float-y 14s ease-in-out infinite;
+}
+
+@keyframes morph-blob {
+  0%, 100% { border-radius: 42% 58% 63% 37% / 43% 38% 62% 57%; transform: rotate(0deg) scale(1); }
+  33% { border-radius: 63% 37% 41% 59% / 57% 62% 38% 43%; transform: rotate(120deg) scale(1.08); }
+  66% { border-radius: 37% 63% 57% 43% / 38% 43% 57% 62%; transform: rotate(240deg) scale(0.95); }
+}
+@utility animate-morph {
+  animation: morph-blob 18s ease-in-out infinite;
+}
+
+@keyframes marquee-x {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@utility animate-marquee {
+  animation: marquee-x 28s linear infinite;
+}

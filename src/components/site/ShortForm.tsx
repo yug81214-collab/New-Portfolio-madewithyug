@@ -66,11 +66,13 @@ export function AutoPlayVideo({
   alt = "",
   className = "h-full w-full object-cover",
   allowEmbeds = false,
+  poster,
 }: {
   url: string;
   alt?: string;
   className?: string;
   allowEmbeds?: boolean;
+  poster?: string;
 }) {
   const mediaUrl = useMediaUrl(url);
   const finalUrl = mediaUrl || url;
@@ -126,12 +128,12 @@ export function AutoPlayVideo({
   return (
     <video
       src={finalUrl}
-      poster={POSTER_BY_VIDEO[finalUrl]}
+      poster={poster || POSTER_BY_VIDEO[finalUrl]}
       autoPlay
       loop
       muted
       playsInline
-      preload="metadata"
+      preload="auto"
       className={className}
     />
   );
@@ -223,6 +225,7 @@ export function ShortForm() {
                     url={r.video_url}
                     alt={r.title}
                     className="h-full w-full object-cover"
+                    poster={r.image}
                   />
                 ) : (
                   <ReelCardImage

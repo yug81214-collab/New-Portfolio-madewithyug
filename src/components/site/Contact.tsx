@@ -86,6 +86,10 @@ export function Contact() {
     const templateId = (import.meta.env["VITE_EMAILJS_TEMPLATE_ID"] as string | undefined) || "";
     const publicKey = (import.meta.env["VITE_EMAILJS_PUBLIC_KEY"] as string | undefined) || "";
 
+    const safeValue = (value?: string) => {
+      return value && String(value).trim() ? String(value).trim() : "Not provided";
+    };
+
     try {
       // Register brief directly into server-side CMS store & Supabase
       await publicSubmitBrief({
@@ -101,16 +105,24 @@ export function Contact() {
         },
       });
 
-      if (formRef.current) {
-        try {
-          await emailjs.sendForm(serviceId, templateId, formRef.current, { publicKey });
-        } catch {
-          // EmailJS fallback gracefully handled
-        }
-      }
+      const templateParams = {
+        name: safeValue(values.name),
+        company: safeValue(values.company),
+        email: safeValue(values.email),
+        phone: safeValue(values.phone),
+        deadline: safeValue(values.deadline),
+        video_type: safeValue(values.videoType),
+        reference: safeValue(values.reference),
+        description: safeValue(values.description),
+        to_email: RECIPIENT,
+        title: "New project brief",
+      };
+
+      await emailjs.send(serviceId, templateId, templateParams, { publicKey });
+
       setStatus("sent");
     } catch (err) {
-      console.error(err);
+      console.error("EmailJS submission failed:", err);
       setStatus("error");
     }
   };

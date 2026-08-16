@@ -68,6 +68,7 @@ export function AutoPlayVideo({
   allowEmbeds = false,
   poster,
   active = true,
+  priority = false,
 }: {
   url: string;
   alt?: string;
@@ -75,6 +76,7 @@ export function AutoPlayVideo({
   allowEmbeds?: boolean;
   poster?: string;
   active?: boolean;
+  priority?: boolean;
 }) {
   const mediaUrl = useMediaUrl(url);
   const finalUrl = mediaUrl || url;
@@ -102,6 +104,7 @@ export function AutoPlayVideo({
           <iframe
             src={embedUrl}
             title={alt}
+            loading={priority ? "eager" : "lazy"}
             className={`${className} border-0 pointer-events-none scale-125`}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           />
@@ -123,6 +126,7 @@ export function AutoPlayVideo({
           <iframe
             src={embedUrl}
             title={alt}
+            loading={priority ? "eager" : "lazy"}
             className={`${className} border-0 pointer-events-none scale-125`}
             allow="autoplay; fullscreen"
           />
@@ -139,7 +143,7 @@ export function AutoPlayVideo({
       loop
       muted
       playsInline
-      preload="metadata"
+      preload={priority ? "auto" : "metadata"}
       className={className}
     />
   );
@@ -233,6 +237,7 @@ export function ShortForm() {
                     className="h-full w-full object-cover"
                     poster={r.image}
                     active={true}
+                    priority={abs <= 1}
                   />
                 ) : (
                   <ReelCardImage

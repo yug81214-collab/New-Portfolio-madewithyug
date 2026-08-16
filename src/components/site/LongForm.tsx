@@ -105,7 +105,7 @@ export function LongForm() {
           title={
             <>
               High-retention{" "}
-              <span className="font-serif font-normal italic text-[#016764]">Long-form</span> &amp;
+              <span className="font-serif font-normal italic text-[#7ef0e2]">Long-form</span> &amp;
               VSL Edits
             </>
           }

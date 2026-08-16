@@ -30,7 +30,11 @@ export function usePublicHomeData() {
   return useQuery({
     queryKey: ["public_home_data"],
     queryFn: () => publicGetHomeData(),
-    staleTime: 2_000,
+    staleTime: 0,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchOnMount: "always",
   });
 }
 

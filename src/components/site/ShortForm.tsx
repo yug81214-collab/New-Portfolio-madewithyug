@@ -192,7 +192,7 @@ export function ShortForm() {
           title={
             <>
               Explore my <span className="highlight">short-form</span> &amp;{" "}
-              <span className="text-[#016764]">VSL</span> edits
+              <span className="text-[#7ef0e2]">VSL</span> edits
             </>
           }
           subtitle="Vertical edits built for one job only: keep the viewer watching until the offer lands."

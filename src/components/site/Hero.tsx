@@ -46,7 +46,7 @@ export function Hero() {
           VSLs That Keep
           <br />
           People
-          <span className="font-serif font-normal italic tracking-[-0.06em] text-[#016764]">
+          <span className="font-serif font-normal italic tracking-[-0.06em] text-[#7ef0e2]">
             {" "}
             Watching
           </span>{" "}

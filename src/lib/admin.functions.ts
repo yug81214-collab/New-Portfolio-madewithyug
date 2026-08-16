@@ -227,16 +227,24 @@ export const adminSaveSettings = createServerFn({ method: "POST" })
 
     if (data.rows.length === 0) return { ok: true as const };
     const newValues = Object.fromEntries(data.rows.map((r) => [r.key, r.value]));
-    cmsStore.saveSettings(newValues);
+  try {
+    const { supabaseAdmin } = await import("@/lib/supabaseAdmin");
+    const { error } = await supabaseAdmin.from("site_settings").upsert(
+      data.rows.map((row) => ({
+        ...row,
+        updated_at: new Date().toISOString(),
+      })),
+      { onConflict: "key" },
+    );
+    if (error) throw error;
+  } catch (error) {
+    console.error("[v0] Failed to persist site settings", error);
+    throw new Error("Settings could not be saved. Please try again.");
+  }
 
-    try {
-      const { supabaseAdmin } = await import("@/lib/supabaseAdmin");
-      await supabaseAdmin.from("site_settings").upsert(data.rows, { onConflict: "key" });
-    } catch (e) {
-      // Ignored
-    }
+  cmsStore.saveSettings(newValues);
 
-    cmsStore.logAudit(
+  cmsStore.logAudit(
       session.data.adminId || "admin",
       session.data.adminName || "Admin",
       "SETTINGS_UPDATED",

@@ -45,10 +45,12 @@ export function Hero() {
         >
           VSLs That Keep
           <br />
-          People{" "}
-          <span className="text-glow bg-gradient-to-br from-white via-[#7ef0e2] to-[#016764] bg-clip-text text-transparent">
-            Watching &amp; Buying.
-          </span>
+          People
+          <span className="font-serif font-normal italic tracking-[-0.06em] text-[#7ef0e2]">
+            {" "}
+            Watching
+          </span>{" "}
+          <span>&amp; Buying.</span>
         </motion.h1>
 
         <motion.p

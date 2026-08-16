@@ -232,7 +232,7 @@ export function ShortForm() {
                     alt={r.title}
                     className="h-full w-full object-cover"
                     poster={r.image}
-                    active={active}
+                    active={true}
                   />
                 ) : (
                   <ReelCardImage

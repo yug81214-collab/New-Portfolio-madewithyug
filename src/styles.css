@@ -183,14 +183,20 @@
     0 16px 40px -20px rgba(0, 0, 0, 0.9);
 }
 
-/* Highlighted words: no box, just a soft teal tint + gentle glow */
+/* Highlighted words use color only; typography carries the emphasis. */
 @utility highlight {
   color: #9df0e4;
-  text-shadow: 0 0 14px rgba(47, 211, 198, 0.22);
 }
 
 @utility text-glow {
-  text-shadow: 0 0 16px rgba(47, 211, 198, 0.22);
+  text-shadow: none;
+}
+
+@utility button-soft-glow {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 0 24px -8px rgba(47, 211, 198, 0.7),
+    0 18px 44px -22px rgba(1, 103, 100, 0.9);
 }
 
 /* Radial-gradient CTA buttons (dark + light variations) */

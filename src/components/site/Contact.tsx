@@ -334,7 +334,7 @@ export function Contact() {
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.96 }}
                     disabled={status === "sending"}
-                    className="btn-radial inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-medium disabled:opacity-70"
+                    className="btn-radial button-soft-glow inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-medium disabled:opacity-70"
                   >
                     {status === "sending" ? (
                       <>

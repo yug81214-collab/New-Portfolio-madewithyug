@@ -67,17 +67,23 @@ export function AutoPlayVideo({
   className = "h-full w-full object-cover",
   allowEmbeds = false,
   poster,
+  active = true,
 }: {
   url: string;
   alt?: string;
   className?: string;
   allowEmbeds?: boolean;
   poster?: string;
+  active?: boolean;
 }) {
   const mediaUrl = useMediaUrl(url);
   const finalUrl = mediaUrl || url;
 
   if (!finalUrl) return null;
+
+  if (!active) {
+    return poster ? <img src={poster} alt={alt} loading="lazy" className={className} /> : null;
+  }
 
   if (allowEmbeds) {
     if (finalUrl.includes("youtube.com") || finalUrl.includes("youtu.be")) {
@@ -133,7 +139,7 @@ export function AutoPlayVideo({
       loop
       muted
       playsInline
-      preload="auto"
+      preload="metadata"
       className={className}
     />
   );
@@ -186,7 +192,7 @@ export function ShortForm() {
           title={
             <>
               Explore my <span className="highlight">short-form</span> &amp;{" "}
-              <span className="text-glow text-[#7ef0e2]">VSL</span> edits
+              <span className="text-[#016764]">VSL</span> edits
             </>
           }
           subtitle="Vertical edits built for one job only: keep the viewer watching until the offer lands."
@@ -226,6 +232,7 @@ export function ShortForm() {
                     alt={r.title}
                     className="h-full w-full object-cover"
                     poster={r.image}
+                    active={active}
                   />
                 ) : (
                   <ReelCardImage

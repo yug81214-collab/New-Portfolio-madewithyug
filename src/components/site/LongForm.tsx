@@ -104,7 +104,9 @@ export function LongForm() {
           eyebrow="Long form"
           title={
             <>
-              High-retention <span className="highlight">Long-form</span> &amp; VSL Edits
+              High-retention{" "}
+              <span className="font-serif font-normal italic text-[#016764]">Long-form</span> &amp;
+              VSL Edits
             </>
           }
           subtitle="Sales letters, documentary cuts, and YouTube videos built with custom motion graphics, pacing, and chapter transitions."

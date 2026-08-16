@@ -44,7 +44,8 @@ export function FAQ() {
           eyebrow="FAQ"
           title={
             <>
-              Questions before we <span className="highlight">start</span>?
+              Questions before we{" "}
+              <span className="font-serif font-normal italic text-[#016764]">start</span>?
             </>
           }
           align="center"

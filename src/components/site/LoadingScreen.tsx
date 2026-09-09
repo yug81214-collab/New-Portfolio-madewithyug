@@ -30,10 +30,10 @@ export function LoadingScreen() {
         <div className="relative h-16 w-16">
           <span className="absolute inset-0 rounded-2xl border-2 border-primary/25" />
           <span className="absolute inset-0 animate-spin rounded-2xl border-2 border-transparent border-t-primary" />
-          <img 
-            src={portrait} 
-            alt="Yug Jha" 
-            className="absolute inset-0 h-full w-full rounded-2xl object-cover" 
+          <img
+            src={portrait}
+            alt="Yug Jha"
+            className="absolute inset-0 h-full w-full rounded-2xl object-cover"
           />
         </div>
         <div className="h-[2px] w-40 overflow-hidden rounded-full bg-white/10">

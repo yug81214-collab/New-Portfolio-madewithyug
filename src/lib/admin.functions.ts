@@ -227,24 +227,24 @@ export const adminSaveSettings = createServerFn({ method: "POST" })
 
     if (data.rows.length === 0) return { ok: true as const };
     const newValues = Object.fromEntries(data.rows.map((r) => [r.key, r.value]));
-  try {
-    const { supabaseAdmin } = await import("@/lib/supabaseAdmin");
-    const { error } = await supabaseAdmin.from("site_settings").upsert(
-      data.rows.map((row) => ({
-        ...row,
-        updated_at: new Date().toISOString(),
-      })),
-      { onConflict: "key" },
-    );
-    if (error) throw error;
-  } catch (error) {
-    console.error("[v0] Failed to persist site settings", error);
-    throw new Error("Settings could not be saved. Please try again.");
-  }
+    try {
+      const { supabaseAdmin } = await import("@/lib/supabaseAdmin");
+      const { error } = await supabaseAdmin.from("site_settings").upsert(
+        data.rows.map((row) => ({
+          ...row,
+          updated_at: new Date().toISOString(),
+        })),
+        { onConflict: "key" },
+      );
+      if (error) throw error;
+    } catch (error) {
+      console.error("[v0] Failed to persist site settings", error);
+      throw new Error("Settings could not be saved. Please try again.");
+    }
 
-  cmsStore.saveSettings(newValues);
+    cmsStore.saveSettings(newValues);
 
-  cmsStore.logAudit(
+    cmsStore.logAudit(
       session.data.adminId || "admin",
       session.data.adminName || "Admin",
       "SETTINGS_UPDATED",
@@ -510,7 +510,7 @@ export const adminCreateVideo = createServerFn({ method: "POST" })
           value: JSON.stringify([...cmsStore.getVideos("short"), ...cmsStore.getVideos("long")]),
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "key" }
+        { onConflict: "key" },
       );
     } catch (e) {
       // Fallback
@@ -573,7 +573,7 @@ export const adminSaveVideo = createServerFn({ method: "POST" })
           value: JSON.stringify([...cmsStore.getVideos("short"), ...cmsStore.getVideos("long")]),
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "key" }
+        { onConflict: "key" },
       );
     } catch (e) {
       // Fallback
@@ -608,7 +608,7 @@ export const adminDeleteVideo = createServerFn({ method: "POST" })
           value: JSON.stringify([...cmsStore.getVideos("short"), ...cmsStore.getVideos("long")]),
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "key" }
+        { onConflict: "key" },
       );
     } catch (e) {
       // Fallback
@@ -652,7 +652,10 @@ export const adminListSubmissions = createServerFn({ method: "GET" }).handler(as
     for (const s of storeSubs) map.set(s.id, s as AdminSubmission);
     for (const dbItem of dbData) {
       if (!map.has(dbItem.id)) {
-        map.set(dbItem.id, { ...dbItem, status: (dbItem as any).status || "NEW" });
+        map.set(dbItem.id, {
+          ...dbItem,
+          status: (dbItem as { status?: ClientSubmissionStatus }).status || "NEW",
+        });
       }
     }
     return Array.from(map.values()) as AdminSubmission[];
@@ -837,7 +840,11 @@ export const adminRegisterMediaAsset = createServerFn({ method: "POST" })
 
     const asset = cmsStore.addMediaAsset({
       ...data,
-      category: (data.category === "video" ? "video" : data.category === "image" ? "image" : "other") as "image" | "video" | "thumbnail" | "other",
+      category: (data.category === "video"
+        ? "video"
+        : data.category === "image"
+          ? "image"
+          : "other") as "image" | "video" | "thumbnail" | "other",
       usage_count: 1,
       uploaded_by: session.data.adminName || "Admin",
     });
@@ -1099,7 +1106,7 @@ export const publicGetHomeData = createServerFn({ method: "GET" }).handler(async
           // ignore
         }
       }
-      
+
       if (settings["videos_data"]) {
         try {
           const vData = JSON.parse(settings["videos_data"]);

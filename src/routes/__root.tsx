@@ -78,10 +78,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Yug Jha | VSL Video Editor & Motion Graphics" },
-      { name: "description", content: "VSL editor and motion graphics artist. I turn scripts and raw footage into video sales letters that hold attention, answer objections and close." },
+      {
+        name: "description",
+        content:
+          "VSL editor and motion graphics artist. I turn scripts and raw footage into video sales letters that hold attention, answer objections and close.",
+      },
       { name: "author", content: "Yug Jha" },
       { property: "og:title", content: "Yug Jha | VSL Video Editor & Motion Graphics" },
-      { property: "og:description", content: "VSL editor and motion graphics artist. I turn scripts and raw footage into video sales letters that hold attention, answer objections and close." },
+      {
+        property: "og:description",
+        content:
+          "VSL editor and motion graphics artist. I turn scripts and raw footage into video sales letters that hold attention, answer objections and close.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@YugJha" },

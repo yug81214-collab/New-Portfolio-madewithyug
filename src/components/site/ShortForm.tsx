@@ -22,35 +22,59 @@ type ReelItem = {
 const defaultReels: ReelItem[] = [
   {
     id: "default-1",
-    title: "Halo Device — Short VSL",
-    category: "VSL",
-    image: short2,
-    video_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    length_label: "0:42",
+    title: "Retention Hook Transformation",
+    category: "VSL Short",
+    image: MEDIA.shorts[0]?.poster || short1,
+    video_url: MEDIA.shorts[0]?.video,
+    length_label: "0:16",
   },
   {
     id: "default-2",
-    title: "Neural — Founder Cut",
-    category: "Talking Head",
-    image: short1,
-    video_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    length_label: "0:30",
-  },
-  {
-    id: "default-3",
-    title: "Nightfall",
-    category: "Story Reel",
-    image: short3,
-    video_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    title: "Scroll-Stopping Opening Frame",
+    category: "VSL Short",
+    image: MEDIA.shorts[1]?.poster || short2,
+    video_url: MEDIA.shorts[1]?.video,
     length_label: "0:45",
   },
   {
+    id: "default-3",
+    title: "Kinetic Caption Cut",
+    category: "Talking Head",
+    image: MEDIA.shorts[2]?.poster || short3,
+    video_url: MEDIA.shorts[2]?.video,
+    length_label: "0:13",
+  },
+  {
     id: "default-4",
-    title: "Lumen Skincare",
+    title: "Objection-Handling Beat",
+    category: "VSL Short",
+    image: MEDIA.shorts[3]?.poster || short4,
+    video_url: MEDIA.shorts[3]?.video,
+    length_label: "0:15",
+  },
+  {
+    id: "default-5",
+    title: "Offer Reveal Edit",
     category: "UGC Ad",
-    image: short4,
-    video_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    length_label: "0:25",
+    image: MEDIA.shorts[4]?.poster || short1,
+    video_url: MEDIA.shorts[4]?.video,
+    length_label: "0:36",
+  },
+  {
+    id: "default-6",
+    title: "High-Pacing Action Cut",
+    category: "Motion Graphics",
+    image: MEDIA.shorts[5]?.poster || short2,
+    video_url: MEDIA.shorts[5]?.video,
+    length_label: "0:15",
+  },
+  {
+    id: "default-7",
+    title: "Closing Call-to-Action Sequence",
+    category: "VSL Short",
+    image: MEDIA.shorts[6]?.poster || short3,
+    video_url: MEDIA.shorts[6]?.video,
+    length_label: "0:17",
   },
 ];
 
@@ -81,8 +105,20 @@ export function AutoPlayVideo({
 
   if (!finalUrl) return null;
 
+  const resolvedPoster =
+    poster ||
+    POSTER_BY_VIDEO[finalUrl] ||
+    POSTER_BY_VIDEO[url] ||
+    (typeof finalUrl === "string" && finalUrl.endsWith(".mp4")
+      ? finalUrl.replace(/\.mp4$/i, ".jpg")
+      : undefined);
+
   if (!active) {
-    return poster ? <img src={poster} alt={alt} loading="lazy" className={className} /> : null;
+    return resolvedPoster ? (
+      <img src={resolvedPoster} alt={alt} loading="lazy" className={className} />
+    ) : (
+      <video src={finalUrl} muted preload="none" className={className} />
+    );
   }
 
   if (allowEmbeds) {
@@ -134,7 +170,7 @@ export function AutoPlayVideo({
   return (
     <video
       src={finalUrl}
-      poster={poster || POSTER_BY_VIDEO[finalUrl]}
+      poster={poster || POSTER_BY_VIDEO[finalUrl] || resolvedPoster}
       autoPlay
       loop
       muted

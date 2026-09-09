@@ -3,6 +3,7 @@ import { Clock } from "lucide-react";
 import { useVideos, useMediaUrl } from "@/lib/site-data";
 import { SectionHeading } from "./SectionHeading";
 import { AutoPlayVideo } from "./ShortForm";
+import { MEDIA } from "@/lib/portfolio-assets";
 
 import long1 from "@/assets/long-1.jpg";
 import long2 from "@/assets/long-2.jpg";
@@ -22,39 +23,36 @@ type LongItem = {
 const defaultItems: LongItem[] = [
   {
     id: "default-l1",
-    title: "Scaling to 7 Figures",
+    title: "High-Retention VSL Masterclass",
     category: "Long-form VSL",
-    length: "32 min",
-    desc: "A sales letter structured around proof, objection handling and one irresistible offer — animated data, b-roll layering and a paced reveal of the price.",
-    image: long2,
-    video_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    length: "15 min",
+    desc: "A sales letter structured around proof, objection handling and one irresistible offer — animated kinetic data, b-roll layering and a paced reveal.",
+    image: MEDIA.long1Poster || long1,
+    video_url: MEDIA.long1Video,
   },
   {
     id: "default-l2",
     title: "The Deep Work Series",
-    category: "YouTube",
+    category: "YouTube VSL",
     length: "18 min",
-    desc: "Narrative edit with a custom motion-graphics system and chapter cards.",
-    image: long1,
-    video_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    desc: "Narrative edit with a custom motion-graphics system, visual hooks and chapter cards.",
+    image: long2,
   },
   {
     id: "default-l3",
-    title: "Above the Clouds",
+    title: "Above the Clouds Story Cut",
     category: "Documentary",
     length: "12 min",
-    desc: "Cinematic grade, sound design and a slow-burn story structure.",
+    desc: "Cinematic color grade, sound design and a high-retention story structure.",
     image: long3,
-    video_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: "default-l4",
-    title: "Signal Podcast",
-    category: "Podcast",
+    title: "Founder Studio Keynote",
+    category: "Podcast & Keynote",
     length: "54 min",
-    desc: "Multicam edit with dynamic reframing and animated lower thirds.",
+    desc: "Multicam edit with dynamic reframing, animated lower thirds, and slide callouts.",
     image: long4,
-    video_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
 ];
 

@@ -4,11 +4,22 @@ import { Check, Eye, Scissors, X, Zap } from "lucide-react";
 import { SectionHeading } from "./SectionHeading";
 import { useMediaUrl, usePublicHomeData } from "@/lib/site-data";
 import { AutoPlayVideo } from "./ShortForm";
+import { MEDIA } from "@/lib/portfolio-assets";
 
 import beforeFallback from "@/assets/before.jpg";
 import afterFallback from "@/assets/after.jpg";
 
-function MediaDisplay({ src, alt, className }: { src: string; alt: string; className: string }) {
+function MediaDisplay({
+  src,
+  alt,
+  className,
+  poster,
+}: {
+  src: string;
+  alt: string;
+  className: string;
+  poster?: string;
+}) {
   const isVideo =
     /\.(mp4|webm|mov|mkv|avi)$/i.test(src) ||
     src.startsWith("data:video/") ||
@@ -17,7 +28,7 @@ function MediaDisplay({ src, alt, className }: { src: string; alt: string; class
     src.includes("vimeo.com");
 
   if (isVideo) {
-    return <AutoPlayVideo url={src} alt={alt} className={className} />;
+    return <AutoPlayVideo url={src} alt={alt} className={className} poster={poster} />;
   }
 
   return <img src={src} alt={alt} loading="lazy" className={className} />;
@@ -25,13 +36,16 @@ function MediaDisplay({ src, alt, className }: { src: string; alt: string; class
 
 export function BeforeAfter() {
   const { data } = usePublicHomeData();
-  const projects = data?.beforeAfter?.filter((p: any) => p.is_published !== false) || [];
+  const projects =
+    data?.beforeAfter?.filter((p: { is_published?: boolean }) => p.is_published !== false) || [];
   const activeProject = projects[0];
 
   const [view, setView] = useState<"before" | "after">("after");
 
-  const beforeImg = useMediaUrl(activeProject?.before_image || null) || beforeFallback;
-  const afterImg = useMediaUrl(activeProject?.after_image || null) || afterFallback;
+  const beforeImg =
+    useMediaUrl(activeProject?.before_image || MEDIA.baRawVideo) || MEDIA.baRawVideo;
+  const afterImg =
+    useMediaUrl(activeProject?.after_image || MEDIA.baEditVideo) || MEDIA.baEditVideo;
 
   const notesList = activeProject?.notes?.length
     ? activeProject.notes
@@ -102,6 +116,7 @@ export function BeforeAfter() {
                 >
                   <MediaDisplay
                     src={view === "before" ? beforeImg : afterImg}
+                    poster={view === "before" ? MEDIA.baRawPoster : MEDIA.baEditPoster}
                     alt={
                       view === "before"
                         ? "Standard unedited short-form clip"

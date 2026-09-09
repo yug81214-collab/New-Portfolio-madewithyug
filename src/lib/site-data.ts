@@ -23,6 +23,7 @@ export const BUCKET = "site-media";
 export function isStoragePath(value: string | null | undefined): boolean {
   if (!value) return false;
   if (value.startsWith("/") || value.startsWith("./")) return false;
+  if (value.includes("/assets/aistudio/__l5e/assets-v1")) return false;
   return !/^(https?:)?\/\//.test(value) && !value.startsWith("data:");
 }
 

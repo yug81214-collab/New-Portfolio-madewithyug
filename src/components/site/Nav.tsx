@@ -42,10 +42,10 @@ export function Nav() {
         }`}
       >
         <a href="#top" className="flex items-center gap-2.5 pl-1">
-          <img 
-            src={logoResolved || portrait} 
-            alt={siteName} 
-            className="h-8 w-8 rounded-xl object-cover" 
+          <img
+            src={logoResolved || portrait}
+            alt={siteName}
+            className="h-8 w-8 rounded-xl object-cover"
           />
           <span className="text-sm font-medium tracking-tight">{siteName}</span>
         </a>

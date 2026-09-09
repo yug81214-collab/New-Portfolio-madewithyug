@@ -152,7 +152,9 @@ function VideoRow({
     mutationFn: () => {
       const finalUrl = activeSourceType === "upload" ? uploadUrl : youtubeUrl;
       if (effectiveKind === "short" && (activeSourceType === "youtube" || isYoutube(finalUrl))) {
-        throw new Error("Short form videos must use local upload (MP4/WebM), YouTube URLs are not allowed.");
+        throw new Error(
+          "Short form videos must use local upload (MP4/WebM), YouTube URLs are not allowed.",
+        );
       }
       if (!finalUrl) {
         throw new Error(

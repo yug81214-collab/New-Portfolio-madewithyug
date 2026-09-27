@@ -375,6 +375,30 @@ function ReelCardImage({ src, alt }: { src?: string; alt: string }) {
 export function ShortForm() {
   const { data: cmsVideos } = useVideos("short");
   const [index, setIndex] = useState(0);
+  const [featuredReady, setFeaturedReady] = useState(false);
+
+  useEffect(() => {
+    const url = useMediaUrl(FEATURED_SHORT.video_url);
+    let cancelled = false;
+
+    if (!url) return;
+
+    void fetch(url, {
+      method: "GET",
+      headers: { Range: "bytes=0-0" },
+      cache: "no-store",
+    })
+      .then((response) => {
+        if (!cancelled) setFeaturedReady(response.ok || response.status === 206);
+      })
+      .catch(() => {
+        if (!cancelled) setFeaturedReady(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const cmsReels: ReelItem[] =
     cmsVideos?.map((v) => ({
@@ -392,8 +416,9 @@ export function ShortForm() {
       item.id === FEATURED_SHORT.id ||
       item.video_url?.includes("final-wizard-trader-reel-2.mp4"),
   );
-  const reels = hasFeatured ? baseReels : [...baseReels, FEATURED_SHORT];
-  const safeReels = reels.length > 0 ? reels : [FEATURED_SHORT];
+  const reels =
+    hasFeatured || featuredReady ? baseReels.concat(hasFeatured ? [] : [FEATURED_SHORT]) : baseReels;
+  const safeReels = reels.length > 0 ? reels : defaultReels;
   const n = safeReels.length;
   const activeIndex = n > 0 ? index % n : 0;
   const go = (dir: number) => {

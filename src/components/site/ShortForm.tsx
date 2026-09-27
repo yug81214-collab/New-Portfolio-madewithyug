@@ -101,10 +101,12 @@ export function AutoPlayVideo({
   active?: boolean;
 }) {
   const mediaUrl = useMediaUrl(url);
+  const posterUrl = useMediaUrl(poster);
   const finalUrl = mediaUrl || url;
   const mediaRef = useRef<HTMLVideoElement>(null);
 
   const resolvedPoster =
+    posterUrl ||
     poster ||
     POSTER_BY_VIDEO[finalUrl] ||
     POSTER_BY_VIDEO[url] ||

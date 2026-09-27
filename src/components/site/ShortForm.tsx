@@ -300,6 +300,9 @@ export function ShortForm() {
             if (offset < -n / 2) offset += n;
             const abs = Math.abs(offset);
             const active = offset === 0;
+            // Cards with abs <= 2 are actually visible in this coverflow.
+            // Their own video element should play instead of showing a frozen poster.
+            const shouldPlay = abs <= 2;
 
             return (
               <motion.button
@@ -325,7 +328,7 @@ export function ShortForm() {
                     alt={r.title}
                     className="h-full w-full object-cover"
                     poster={r.image}
-                    active={active}
+                    active={shouldPlay}
                   />
                 ) : (
                   <ReelCardImage

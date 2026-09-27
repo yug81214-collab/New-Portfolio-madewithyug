@@ -271,7 +271,6 @@ export function ShortForm() {
     if (n === 0) return;
     setIndex((i) => (i + dir + n) % n);
   };
-  const current = safeReels[activeIndex] || safeReels[0];
 
   return (
     <section id="work" className="relative overflow-hidden py-24 sm:py-36">

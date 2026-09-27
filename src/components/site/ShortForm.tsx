@@ -429,7 +429,6 @@ export function ShortForm() {
             if (offset < -n / 2) offset += n;
             const abs = Math.abs(offset);
             const active = offset === 0;
-            // Cards with abs <= 2 are actually visible in this coverflow.
             return (
               <motion.button
                 key={r.id || r.title + i}

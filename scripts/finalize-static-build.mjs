@@ -13,7 +13,7 @@ if (!script) throw new Error("Production client bundle was not generated")
 
 const stylesheetTag = stylesheet ? `    <link rel="stylesheet" href="/assets/${stylesheet}" />\n` : ""
 const productionHtml = sourceHtml
-  .replace(/\s*<script type="module" src="\/src\/main\.tsx"><\/script>/, "")
+  .replace(/\s*<script type="module" src="\/src\/(?:main|client)\.tsx"><\/script>/g, "")
   .replace("  </head>", `${stylesheetTag}  </head>`)
   .replace("  </body>", `    <script type="module" src="/assets/${script}"></script>\n  </body>`)
 

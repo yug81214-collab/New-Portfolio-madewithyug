@@ -67,6 +67,13 @@ function aistudioMediaPlugin() {
 export default defineConfig({
   vite: {
     plugins: [aistudioMediaPlugin()],
+    // TanStack Router exposes conditional subpath exports that Vite's dependency
+    // optimizer can cache under filenames it later cannot serve in preview.
+    // Keep these packages in the normal transform pipeline so client.tsx can load
+    // reliably after a server restart or HMR update.
+    optimizeDeps: {
+      exclude: ["@tanstack/router-core", "seroval"],
+    },
     server: {
       hmr: process.env.DISABLE_HMR !== "true",
       watch: process.env.DISABLE_HMR === "true" ? null : {},

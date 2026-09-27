@@ -205,7 +205,15 @@ export function AutoPlayVideo({
 function ReelCardImage({ src, alt }: { src?: string; alt: string }) {
   const url = useMediaUrl(src);
   if (url) {
-    return <img src={url} alt={alt} loading="lazy" decoding="async" className="h-full w-full object-cover" />;
+    return (
+      <img
+        src={url}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        className="h-full w-full object-cover"
+      />
+    );
   }
   return (
     <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-[#013534] via-[#051d20] to-[#011417] p-6 text-center">

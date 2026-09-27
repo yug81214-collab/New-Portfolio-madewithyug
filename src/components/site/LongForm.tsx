@@ -64,6 +64,7 @@ function CardImage({ src, alt }: { src?: string; alt: string }) {
         src={url}
         alt={alt}
         loading="lazy"
+        decoding="async"
         className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
       />
     );

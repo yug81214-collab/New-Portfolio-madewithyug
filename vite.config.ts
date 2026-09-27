@@ -64,11 +64,15 @@ function aistudioMediaPlugin() {
   };
 }
 
+const isVercelBuild =
+  Boolean(process.env.VERCEL && process.env.VERCEL !== "0") ||
+  Boolean(process.env.VERCEL_URL);
+
 export default defineConfig({
-  // This portfolio is a client-rendered Vite site. Disable Nitro for the
-  // production build so Vercel serves Vite's compiled index.html and assets,
-  // not Nitro's unprocessed renderer template.
-  nitro: false,
+  // Lovable's wrapper uses Nitro for its own preview environment. Vercel
+  // requires Nitro's Vercel preset so SSR and server functions are deployed
+  // as Vercel Functions/Build Output API artifacts.
+  nitro: isVercelBuild ? { preset: "vercel" } : true,
   vite: {
     plugins: [aistudioMediaPlugin()],
     // TanStack Router exposes conditional subpath exports that Vite's dependency
@@ -93,9 +97,7 @@ export default defineConfig({
     },
   },
   tanstackStart: {
-    // Use explicit source paths so the production manifest points at the
-    // compiled client/server chunks instead of the raw TypeScript files.
-    client: { entry: "src/client.tsx" },
-    server: { entry: "src/server.ts" },
+    server: { entry: "server" },
+    prerender: { enabled: false },
   },
 });

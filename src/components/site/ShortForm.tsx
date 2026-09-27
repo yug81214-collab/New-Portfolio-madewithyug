@@ -136,7 +136,7 @@ export function AutoPlayVideo({
     return resolvedPoster ? (
       <img src={resolvedPoster} alt={alt} loading="lazy" decoding="async" className={className} />
     ) : (
-      <video src={finalUrl} muted preload="none" className={className} />
+      <video src={finalUrl} muted preload="auto" className={className} />
     );
   }
 
@@ -195,8 +195,7 @@ export function AutoPlayVideo({
       loop
       muted
       playsInline
-      preload="none"
-      loading="lazy"
+      preload="auto"
       className={className}
     />
   );

@@ -1,0 +1,35 @@
+name: Verify Vercel Build
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  vercel-build:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build with Vercel target
+        run: npm run build
+
+      - name: Verify Vercel Build Output API
+        run: |
+          test -f .vercel/output/config.json
+          test -d .vercel/output/static
+          test -d .vercel/output/functions
+          echo "Vercel Build Output API generated successfully."

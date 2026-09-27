@@ -155,7 +155,7 @@ export function AutoPlayVideo({
     // Keep the real video element mounted for every carousel card. This is
     // critical: detached warm-up elements do not transfer their decoded buffer
     // to the visible element. preload="auto" lets every visible card request
-    // data ahead of activation while only the active card plays.
+    // data ahead of activation. Cards that are visually in the coverflow also play;\n    // cards outside the visible range are paused to avoid wasting resources.
     mediaRef.current.preload = "auto";
     mediaRef.current.muted = true;
     mediaRef.current.defaultMuted = true;

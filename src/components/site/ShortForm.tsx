@@ -115,52 +115,85 @@ export function AutoPlayVideo({
       : undefined);
 
   useEffect(() => {
-    if (!mediaRef.current || !active) {
-      mediaRef.current?.pause();
-      return;
-    }
-
     const video = mediaRef.current;
-    let cancelled = false;
+    if (!video || !finalUrl) return;
 
-    const startPlayback = async () => {
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    video.autoplay = true;
+
+    let cancelled = false;
+    const retryDelays = [0, 100, 300, 700, 1500, 3000, 6000];
+    const timers: ReturnType<typeof window.setTimeout>[] = [];
+
+    const play = () => {
       if (cancelled) return;
-      try {
-        if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
-          video.load();
-        }
-        await video.play();
-      } catch {
-        // Autoplay can be rejected by browser policy. The video stays ready
-        // and will start as soon as it receives another activation.
-      }
+      void video.play().catch(() => {
+        // A browser may reject a play request temporarily while data is
+        // buffering or decoder resources are being scheduled. Media events
+        // and bounded retries below will request playback again.
+      });
     };
 
-    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-      void startPlayback();
-    } else {
-      video.addEventListener("canplay", startPlayback, { once: true });
-      video.addEventListener("loadeddata", startPlayback, { once: true });
+    retryDelays.forEach((delay) => {
+      timers.push(
+        window.setTimeout(() => {
+          if (!cancelled) play();
+        }, delay),
+      );
+    });
+
+    const onMediaEvent = () => play();
+    const events = [
+      "loadedmetadata",
+      "loadeddata",
+      "canplay",
+      "canplaythrough",
+      "progress",
+      "durationchange",
+      "playing",
+      "stalled",
+      "waiting",
+      "suspend",
+      "pause",
+    ];
+
+    events.forEach((eventName) => {
+      video.addEventListener(eventName, onMediaEvent);
+    });
+
+    // Keep every carousel video actively requesting playback. There is no
+    // center-card/side-card pause rule for ShortForm.
+    if (video.readyState === HTMLMediaElement.HAVE_NOTHING) {
+      video.load();
     }
+    play();
+
+    const onVisibility = () => {
+      if (!document.hidden) play();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
       cancelled = true;
-      video.removeEventListener("canplay", startPlayback);
-      video.removeEventListener("loadeddata", startPlayback);
+      timers.forEach((timer) => window.clearTimeout(timer));
+      events.forEach((eventName) => {
+        video.removeEventListener(eventName, onMediaEvent);
+      });
+      document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [active, finalUrl]);
+  }, [finalUrl]);
 
   useEffect(() => {
-    if (!mediaRef.current || !finalUrl) return;
-    // Keep the real video element mounted for every carousel card. This is
-    // critical: detached warm-up elements do not transfer their decoded buffer
-    // to the visible element. preload="auto" lets every visible card request
-    // data ahead of activation. Cards that are visually in the coverflow also play;\n    // cards outside the visible range are paused to avoid wasting resources.
-    mediaRef.current.preload = "auto";
-    mediaRef.current.muted = true;
-    mediaRef.current.defaultMuted = true;
-    mediaRef.current.playsInline = true;
-    mediaRef.current.load();
+    const video = mediaRef.current;
+    if (!video || !finalUrl) return;
+    video.preload = "auto";
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+    video.autoplay = true;
   }, [finalUrl]);
 
   if (!finalUrl) return null;

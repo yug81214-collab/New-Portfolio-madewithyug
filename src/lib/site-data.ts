@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import { publicGetHomeData } from "@/lib/admin.functions";
 
 export type Video = {

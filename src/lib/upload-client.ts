@@ -2,13 +2,13 @@ import { BUCKET } from "./site-data";
 
 export async function uploadDirectlyToStorage(
   file: File,
-  createUrlTokenFn: (data: { ext: string }) => Promise<{ path: string; token: string }>,
+  createUrlTokenFn: (data: { ext: string; filename: string }) => Promise<{ path: string; token: string }>,
   onProgress?: (pct: number) => void,
   signal?: AbortSignal,
 ): Promise<{ url: string; error?: string }> {
   try {
     const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
-    const { path, token } = await createUrlTokenFn({ ext });
+    const { path, token } = await createUrlTokenFn({ ext, filename: file.name });
 
     return new Promise((resolve) => {
       const xhr = new XMLHttpRequest();

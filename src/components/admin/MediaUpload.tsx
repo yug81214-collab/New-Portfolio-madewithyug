@@ -79,7 +79,7 @@ export function MediaUpload({
     const { url, error: uploadErr } = await uploadDirectlyToStorage(
       file,
       async (data) => {
-        const res = await createUrlToken({ data });
+        const res = await createUrlToken({ data: { ...data, filename: file.name } });
         return res;
       },
       setProgress,

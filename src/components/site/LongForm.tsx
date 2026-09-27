@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Clock } from "lucide-react";
 import { useVideos, useMediaUrl } from "@/lib/site-data";
@@ -56,6 +57,16 @@ const defaultItems: LongItem[] = [
   },
 ];
 
+const FEATURED_LONG: LongItem = {
+  id: "featured-editly-saas-final",
+  title: "Editly SaaS Final",
+  category: "SaaS / VSL",
+  length: "0:19",
+  desc: "Editly SaaS final motion edit.",
+  image: MEDIA.long1Poster || long1,
+  video_url: "portfolio-media/editly-saas-final.mp4",
+};
+
 function CardImage({ src, alt }: { src?: string; alt: string }) {
   const url = useMediaUrl(src);
   if (url) {
@@ -78,19 +89,52 @@ function CardImage({ src, alt }: { src?: string; alt: string }) {
 
 export function LongForm() {
   const { data: cmsVideos } = useVideos("long");
+  const [featuredReady, setFeaturedReady] = useState(false);
 
-  const items: LongItem[] =
-    cmsVideos !== undefined
-      ? cmsVideos.map((v) => ({
-          id: v.id,
-          title: v.title,
-          category: v.category || "Long-form VSL",
-          length: v.length_label || "10+ min",
-          desc: v.description || "High-converting long-form video edit.",
-          image: v.thumbnail_url || "",
-          video_url: v.video_url,
-        }))
-      : defaultItems;
+  useEffect(() => {
+    const url = useMediaUrl(FEATURED_LONG.video_url);
+    let cancelled = false;
+
+    if (!url) return;
+
+    void fetch(url, {
+      method: "GET",
+      headers: { Range: "bytes=0-0" },
+      cache: "no-store",
+    })
+      .then((response) => {
+        if (!cancelled) setFeaturedReady(response.ok || response.status === 206);
+      })
+      .catch(() => {
+        if (!cancelled) setFeaturedReady(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const cmsItems: LongItem[] =
+    cmsVideos?.map((v) => ({
+      id: v.id,
+      title: v.title,
+      category: v.category || "Long-form VSL",
+      length: v.length_label || "10+ min",
+      desc: v.description || "High-converting long-form video edit.",
+      image: v.thumbnail_url || "",
+      video_url: v.video_url,
+    })) ?? [];
+
+  const baseItems = cmsVideos !== undefined ? cmsItems : defaultItems;
+  const hasFeatured = baseItems.some(
+    (item) =>
+      item.id === FEATURED_LONG.id ||
+      item.video_url?.includes("editly-saas-final.mp4"),
+  );
+  const items =
+    hasFeatured || featuredReady
+      ? baseItems.concat(hasFeatured ? [] : [FEATURED_LONG])
+      : baseItems;
 
   return (
     <section id="long-form" className="relative overflow-hidden py-24 sm:py-36">

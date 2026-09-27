@@ -115,53 +115,77 @@ export function AutoPlayVideo({
       : undefined);
 
   useEffect(() => {
-    if (!mediaRef.current || !active) {
-      mediaRef.current?.pause();
+    const video = mediaRef.current;
+    if (!video || !finalUrl) return;
+
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+
+    if (!active) {
+      video.pause();
       return;
     }
 
-    const video = mediaRef.current;
     let cancelled = false;
+    const timers: ReturnType<typeof window.setTimeout>[] = [];
 
-    const startPlayback = async () => {
-      if (cancelled) return;
-      try {
-        if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
-          video.load();
-        }
-        await video.play();
-      } catch {
-        // Autoplay can be rejected by browser policy. The video stays ready
-        // and will start as soon as it receives another activation.
-      }
+    const attemptPlay = () => {
+      if (cancelled || video.ended) return;
+
+      // Do not wait for React's native autoPlay attribute. Explicitly calling
+      // play() makes the start request observable and lets us retry when
+      // another buffered chunk becomes available.
+      void video.play().catch(() => {
+        // Browsers can temporarily reject play while the media is buffering
+        // or while several videos compete for resources. Event/timer retries
+        // below will try again without showing a frozen poster.
+      });
     };
 
-    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-      void startPlayback();
+    // Try immediately and again after progressively longer delays. This is
+    // intentionally bounded so a slow/failed asset cannot create a permanent
+    // timer loop.
+    [0, 120, 350, 700, 1400, 2600, 4500].forEach((delay) => {
+      timers.push(
+        window.setTimeout(() => {
+          if (!cancelled) attemptPlay();
+        }, delay),
+      );
+    });
+
+    const mediaEvents = [
+      "loadedmetadata",
+      "loadeddata",
+      "canplay",
+      "canplaythrough",
+      "progress",
+      "durationchange",
+      "stalled",
+      "waiting",
+    ];
+
+    mediaEvents.forEach((eventName) => {
+      video.addEventListener(eventName, attemptPlay);
+    });
+
+    // When a hidden card becomes visible, explicitly restart its request.
+    // For already-buffered cards this is cheap; for cold cards it prompts the
+    // browser to fetch data now that the card is visible.
+    if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+      video.load();
     } else {
-      video.addEventListener("canplay", startPlayback, { once: true });
-      video.addEventListener("loadeddata", startPlayback, { once: true });
+      attemptPlay();
     }
 
     return () => {
       cancelled = true;
-      video.removeEventListener("canplay", startPlayback);
-      video.removeEventListener("loadeddata", startPlayback);
+      timers.forEach((timer) => window.clearTimeout(timer));
+      mediaEvents.forEach((eventName) => {
+        video.removeEventListener(eventName, attemptPlay);
+      });
     };
   }, [active, finalUrl]);
-
-  useEffect(() => {
-    if (!mediaRef.current || !finalUrl) return;
-    // Keep the real video element mounted for every carousel card. This is
-    // critical: detached warm-up elements do not transfer their decoded buffer
-    // to the visible element. preload="auto" lets every visible card request
-    // data ahead of activation. Cards that are visually in the coverflow also play;\n    // cards outside the visible range are paused to avoid wasting resources.
-    mediaRef.current.preload = "auto";
-    mediaRef.current.muted = true;
-    mediaRef.current.defaultMuted = true;
-    mediaRef.current.playsInline = true;
-    mediaRef.current.load();
-  }, [finalUrl]);
 
   if (!finalUrl) return null;
 
@@ -219,7 +243,7 @@ export function AutoPlayVideo({
       muted
       defaultMuted
       playsInline
-      preload="auto"
+      preload={active ? "auto" : "metadata"}
       className={className}
       aria-label={alt}
     />

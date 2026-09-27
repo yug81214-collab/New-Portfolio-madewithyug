@@ -65,6 +65,10 @@ function aistudioMediaPlugin() {
 }
 
 export default defineConfig({
+  // This portfolio is a client-rendered Vite site. Disable Nitro for the
+  // production build so Vercel serves Vite's compiled index.html and assets,
+  // not Nitro's unprocessed renderer template.
+  nitro: false,
   vite: {
     plugins: [aistudioMediaPlugin()],
     // TanStack Router exposes conditional subpath exports that Vite's dependency
@@ -89,10 +93,9 @@ export default defineConfig({
     },
   },
   tanstackStart: {
-    // Client entry in src/client.tsx
-    client: { entry: "client" },
-    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-    // nitro/vite builds from this
-    server: { entry: "server" },
+    // Use explicit source paths so the production manifest points at the
+    // compiled client/server chunks instead of the raw TypeScript files.
+    client: { entry: "src/client.tsx" },
+    server: { entry: "src/server.ts" },
   },
 });

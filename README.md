@@ -10,62 +10,18 @@ npm run dev      # http://localhost:8080
 npm run build    # production build
 ```
 
-## EmailJS setup (contact form → yjha019@gmail.com)
+## EmailJS setup (contact form → email)
 
-The contact form sends the brief with [EmailJS](https://www.emailjs.com) straight
-from the browser — no backend needed.
-
-**1. Create the service**
-
-1. Sign up at https://dashboard.emailjs.com
-2. **Email Services → Add New Service → Gmail**, connect `yjha019@gmail.com`,
-   and copy the **Service ID** (`service_xxxxxxx`).
-
-**2. Create the template**
-
-**Email Templates → Create New Template**. Set:
-
-- **To Email:** `yjha019@gmail.com`
-- **From Name:** `{{name}}`
-- **Reply To:** `{{email}}`
-- **Subject:** `New project brief — {{name}} ({{videoType}})`
-
-Content (copy-paste):
-
-```
-Name: {{name}}
-Company: {{company}}
-Email: {{email}}
-Phone: {{phone}}
-
-Deadline: {{deadline}}
-Video type: {{videoType}}
-Reference: {{reference}}
-
-Description:
-{{description}}
-```
-
-Save and copy the **Template ID** (`template_xxxxxxx`).
-
-**3. Get the public key**
-
-**Account → General → Public Key** (`xxxxxxxxxxxxxxxx`).
-
-**4. Add the environment variables**
-
-Create a `.env` file in the project root (see `.env.example`):
+The contact form submits through a TanStack Start server function. Configure these values in Vercel under **Settings → Environment Variables** for both Production and Preview:
 
 ```bash
-VITE_EMAILJS_SERVICE_ID=service_xxxxxxx
-VITE_EMAILJS_TEMPLATE_ID=template_xxxxxxx
-VITE_EMAILJS_PUBLIC_KEY=xxxxxxxxxxxxxxxx
+EMAILJS_SERVICE_ID=service_xxxxxxx
+EMAILJS_TEMPLATE_ID=template_xxxxxxx
+EMAILJS_PUBLIC_KEY=xxxxxxxxxxxxxxxx
+EMAILJS_PRIVATE_KEY=your_private_key_if_used
 ```
 
-Restart the dev server. Submitting the form now delivers to `yjha019@gmail.com`.
-
-> These `VITE_` values are public by design (EmailJS public keys are safe in the
-> browser). Lock the domain in **EmailJS → Account → Security → Allowed origins**.
+Keep private credentials unprefixed. `VITE_` variables are exposed to browser code.
 
 ## Deploy to GitHub
 
@@ -80,10 +36,10 @@ git push -u origin main
 
 ## Deploy to Vercel
 
-1. **Add New → Project** → import the GitHub repo.
-2. Leave the build settings as-is — `vercel.json` already sets
-   `NITRO_PRESET=vercel npm run build`, which emits the Vercel Build Output API
-   bundle automatically.
-3. Add the three `VITE_EMAILJS_*` variables under
-   **Settings → Environment Variables** (Production + Preview).
-4. Deploy.
+1. Import the GitHub repository into Vercel.
+2. Keep the framework preset as **TanStack Start**. Do not set a custom output directory; Nitro generates Vercel's Build Output API output.
+3. Use Node.js **24.x** (pinned in `package.json`).
+4. Add the required Supabase and EmailJS environment variables to the relevant Vercel environments.
+5. Redeploy after changing environment variables.
+
+The repository's `vite.config.ts` automatically selects Nitro's `vercel` preset during Vercel builds.

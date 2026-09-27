@@ -64,30 +64,18 @@ export function useVideos(kind: "short" | "long") {
   };
 }
 
-/** Turns storage paths into temporary signed URLs; absolute URLs pass through. */
+/**
+ * Portfolio media is public. Stable public URLs allow browser/CDN caching
+ * without generating a fresh signed URL for every component render.
+ */
 export function useMediaUrls(values: (string | null | undefined)[]) {
-  const cleanValues = values.filter((v): v is string => typeof v === "string" && v.length > 0);
-  const paths = Array.from(new Set(cleanValues.filter(isStoragePath)));
-  return useQuery({
-    queryKey: ["media", paths.slice().sort()],
-    enabled: paths.length > 0,
-    staleTime: 30 * 60_000,
-    queryFn: async (): Promise<Record<string, string>> => {
-      try {
-        const { data, error } = await supabase.storage
-          .from(BUCKET)
-          .createSignedUrls(paths, 60 * 60 * 24);
-        if (error) throw error;
-        const map: Record<string, string> = {};
-        for (const item of data ?? []) {
-          if (item.path && item.signedUrl) map[item.path] = item.signedUrl;
-        }
-        return map;
-      } catch (e) {
-        return {};
-      }
-    },
-  });
+  const map: Record<string, string> = {};
+  for (const value of values) {
+    if (!value || !isStoragePath(value)) continue;
+    const url = getMediaUrl(value);
+    if (url) map[value] = url;
+  }
+  return { data: map, isLoading: false, isFetching: false, error: null };
 }
 
 export function getMediaUrl(value: string | null | undefined): string {
@@ -99,16 +87,12 @@ export function getMediaUrl(value: string | null | undefined): string {
     (typeof process !== "undefined" ? process.env.VITE_SUPABASE_URL : undefined) ||
     "";
 
+  if (!supabaseUrl) return value;
+
   const cleanPath = value.replace(/^\/+/, "");
-  return `${supabaseUrl}/storage/v1/object/public/${BUCKET}/${cleanPath}`;
+  return supabaseUrl + "/storage/v1/object/public/" + BUCKET + "/" + cleanPath;
 }
 
 export function useMediaUrl(value: string | null | undefined) {
-  const { data } = useMediaUrls(value ? [value] : []);
-  if (!value) return "";
-  if (!isStoragePath(value)) return value;
-
-  if (data?.[value]) return data[value];
-
   return getMediaUrl(value);
 }

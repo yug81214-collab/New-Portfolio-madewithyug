@@ -731,15 +731,15 @@ export const adminDeleteSubmission = createServerFn({ method: "POST" })
 
 export const publicSubmitBrief = createServerFn({ method: "POST" })
   .validator((data: Record<string, unknown>) => ({
-    name: String(data?.name ?? "").slice(0, 150),
-    company: String(data?.company ?? "").slice(0, 150),
-    email: String(data?.email ?? "").slice(0, 200),
-    phone: String(data?.phone ?? "").slice(0, 100),
-    deadline: String(data?.deadline ?? "").slice(0, 100),
-    video_type: String(data?.video_type ?? "").slice(0, 200),
-    budget: String(data?.budget ?? "").slice(0, 100),
-    reference: String(data?.reference ?? "").slice(0, 500),
-    description: String(data?.description ?? "").slice(0, 5000),
+    name: String(data?.name ?? "").trim().slice(0, 150),
+    company: String(data?.company ?? "").trim().slice(0, 150),
+    email: String(data?.email ?? "").trim().slice(0, 200),
+    phone: String(data?.phone ?? "").trim().slice(0, 100),
+    deadline: String(data?.deadline ?? "").trim().slice(0, 100),
+    video_type: String(data?.video_type ?? "").trim().slice(0, 200),
+    budget: String(data?.budget ?? "").trim().slice(0, 100),
+    reference: String(data?.reference ?? "").trim().slice(0, 500),
+    description: String(data?.description ?? "").trim().slice(0, 5000),
   }))
   .handler(async ({ data }) => {
     if (!data.name || !data.email || !data.description) {
@@ -747,34 +747,65 @@ export const publicSubmitBrief = createServerFn({ method: "POST" })
     }
 
     const sub = cmsStore.addSubmission({
-      name: data.name,
-      company: data.company,
-      email: data.email,
-      phone: data.phone,
-      deadline: data.deadline,
-      video_type: data.video_type,
-      budget: data.budget,
-      reference: data.reference,
-      description: data.description,
+      name: data.name, company: data.company, email: data.email, phone: data.phone,
+      deadline: data.deadline, video_type: data.video_type, budget: data.budget,
+      reference: data.reference, description: data.description,
     });
 
-    // Mirror to Supabase if connected
     try {
       const { supabaseAdmin } = await import("@/lib/supabaseAdmin");
-      await supabaseAdmin.from("submissions").insert({
-        id: sub.id,
-        name: sub.name,
-        company: sub.company,
-        email: sub.email,
-        phone: sub.phone,
-        deadline: sub.deadline,
-        video_type: sub.video_type,
-        reference: sub.reference,
-        description: sub.description,
-        is_read: false,
+      const { error } = await supabaseAdmin.from("submissions").insert({
+        id: sub.id, name: sub.name, company: sub.company, email: sub.email,
+        phone: sub.phone, deadline: sub.deadline, video_type: sub.video_type,
+        reference: sub.reference, description: sub.description, is_read: false,
       });
-    } catch (e) {
-      // Ignored if local fallback
+      if (error) console.error("[Contact] Supabase lead mirror failed:", error);
+    } catch (error) {
+      console.error("[Contact] Supabase lead mirror unavailable:", error);
+    }
+
+    let emailSent = false;
+    try {
+      const serviceId = process.env["EMAILJS_SERVICE_ID"] || process.env["VITE_EMAILJS_SERVICE_ID"] || "";
+      const templateId = process.env["EMAILJS_TEMPLATE_ID"] || process.env["VITE_EMAILJS_TEMPLATE_ID"] || "";
+      const publicKey = process.env["EMAILJS_PUBLIC_KEY"] || process.env["VITE_EMAILJS_PUBLIC_KEY"] || "";
+      const privateKey = process.env["EMAILJS_PRIVATE_KEY"] || "";
+
+      if (!serviceId || !templateId || !publicKey) {
+        throw new Error("EmailJS environment variables are missing");
+      }
+
+      const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          service_id: serviceId,
+          template_id: templateId,
+          user_id: publicKey,
+          ...(privateKey ? { accessToken: privateKey } : {}),
+          template_params: {
+            name: data.name || "Not provided",
+            company: data.company || "Not provided",
+            email: data.email || "Not provided",
+            phone: data.phone || "Not provided",
+            deadline: data.deadline || "Not provided",
+            video_type: data.video_type || "Not provided",
+            budget: data.budget || "Not provided",
+            reference: data.reference || "Not provided",
+            description: data.description || "Not provided",
+            to_email: "jhayug29@gmail.com",
+            reply_to: data.email || "jhayug29@gmail.com",
+            from_name: data.name || "Portfolio Visitor",
+            title: "New project brief",
+          },
+        }),
+      });
+
+      const responseText = await response.text();
+      if (!response.ok) throw new Error(`EmailJS HTTP ${response.status}: ${responseText.slice(0, 500)}`);
+      emailSent = true;
+    } catch (emailError) {
+      console.error("[Contact] EmailJS notification failed:", emailError);
     }
 
     cmsStore.logAudit(
@@ -782,12 +813,14 @@ export const publicSubmitBrief = createServerFn({ method: "POST" })
       data.name,
       "CLIENT_BRIEF_SUBMITTED",
       "Client Contact Form",
-      "SUCCESS",
-      `New brief received from ${data.email}`,
+      emailSent ? "SUCCESS" : "FAILURE",
+      emailSent
+        ? `New brief received from ${data.email}; EmailJS notification sent`
+        : `New brief received from ${data.email}; EmailJS notification failed`,
       sub.id,
     );
 
-    return { ok: true as const, id: sub.id };
+    return { ok: true as const, id: sub.id, emailSent };
   });
 
 /* ------------------------------------------------------------- MEDIA LIBRARY */

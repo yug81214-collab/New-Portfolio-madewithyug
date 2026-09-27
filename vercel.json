@@ -3,5 +3,5 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "outputDirectory": "dist/client",
-  "framework": null
+  "framework": "tanstack-start"
 }

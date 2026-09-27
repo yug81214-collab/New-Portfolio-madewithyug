@@ -1,8 +1,7 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, ArrowRight, Check, Loader2, Send } from "lucide-react";
 import { z } from "zod";
-import emailjs from "@emailjs/browser";
 import { SectionHeading } from "./SectionHeading";
 import { publicSubmitBrief } from "@/lib/admin.functions";
 import { useSetting } from "@/lib/site-data";
@@ -53,7 +52,7 @@ export function Contact() {
   const [values, setValues] = useState<Values>(initial);
   const [errors, setErrors] = useState<Errors>({});
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const formRef = useRef<HTMLFormElement>(null);
+  const [emailDelivered, setEmailDelivered] = useState<boolean | null>(null);
   const heading = useSetting("contact_title", "Let's make your next video the one people finish.");
   const sub = useSetting(
     "contact_subtitle",
@@ -82,17 +81,8 @@ export function Contact() {
     if (!validateStep(2)) return;
     setStatus("sending");
 
-    const serviceId = (import.meta.env["VITE_EMAILJS_SERVICE_ID"] as string | undefined) || "";
-    const templateId = (import.meta.env["VITE_EMAILJS_TEMPLATE_ID"] as string | undefined) || "";
-    const publicKey = (import.meta.env["VITE_EMAILJS_PUBLIC_KEY"] as string | undefined) || "";
-
-    const safeValue = (value?: string) => {
-      return value && String(value).trim() ? String(value).trim() : "Not provided";
-    };
-
     try {
-      // Register brief directly into server-side CMS store & Supabase
-      await publicSubmitBrief({
+      const result = await publicSubmitBrief({
         data: {
           name: values.name,
           company: values.company || "",
@@ -104,22 +94,7 @@ export function Contact() {
           description: values.description,
         },
       });
-
-      const templateParams = {
-        name: safeValue(values.name),
-        company: safeValue(values.company),
-        email: safeValue(values.email),
-        phone: safeValue(values.phone),
-        deadline: safeValue(values.deadline),
-        video_type: safeValue(values.videoType),
-        reference: safeValue(values.reference),
-        description: safeValue(values.description),
-        to_email: RECIPIENT,
-        title: "New project brief",
-      };
-
-      await emailjs.send(serviceId, templateId, templateParams, { publicKey });
-
+      setEmailDelivered(result.emailSent);
       setStatus("sent");
     } catch (err) {
       console.error("EmailJS submission failed:", err);
@@ -161,12 +136,11 @@ export function Contact() {
                 Thanks for reaching out
               </h3>
               <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-white/80">
-                Thanks for reaching out; your form will be reviewed within 24 hours, and you will
-                receive a message via email or WhatsApp.
+                Thanks for reaching out; your brief has been received. {emailDelivered === false ? " The brief is stored, but the email notification is temporarily unavailable." : " You\'ll receive a message via email or WhatsApp after review."}
               </p>
             </motion.div>
           ) : (
-            <form ref={formRef} onSubmit={onSubmit} noValidate>
+            <form onSubmit={onSubmit} noValidate>
               <input type="hidden" name="to_email" value={RECIPIENT} readOnly />
               <input type="hidden" name="title" value="New project brief" readOnly />
               <div className="mb-9 flex items-center gap-3">

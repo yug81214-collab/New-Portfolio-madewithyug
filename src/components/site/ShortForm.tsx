@@ -214,7 +214,7 @@ export function AutoPlayVideo({
       ref={mediaRef}
       src={finalUrl}
       poster={resolvedPoster}
-      autoPlay={false}
+      autoPlay={active}
       loop
       muted
       defaultMuted

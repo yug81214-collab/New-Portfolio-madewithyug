@@ -8,40 +8,45 @@ type HomeMediaData = {
   longVideos?: Array<{ thumbnail_url?: string | null; video_url?: string | null }>;
 };
 
-const warmed = new Map<string, HTMLImageElement | HTMLVideoElement>();
-const STATIC_MEDIA = [
-  MEDIA.intro, MEDIA.baRawPoster, MEDIA.baEditPoster, MEDIA.long1Poster,
-  MEDIA.baRawVideo, MEDIA.baEditVideo, MEDIA.long1Video,
-  ...MEDIA.shorts.flatMap((item) => [item.poster, item.video]),
+const warmed = new Map<string, HTMLImageElement>();
+const STATIC_IMAGES = [
+  MEDIA.intro,
+  MEDIA.baRawPoster,
+  MEDIA.baEditPoster,
+  MEDIA.long1Poster,
+  ...MEDIA.shorts.map((item) => item.poster),
 ];
 
 const isVideo = (url: string) => /\.(mp4|webm|mov|m4v)(?:[?#].*)?$/i.test(url);
-const resolve = (value?: string | null) => value ? getMediaUrl(value) : "";
+const resolve = (value?: string | null) => (value ? getMediaUrl(value) : "");
 
-function collect(data?: HomeMediaData) {
+function collectImages(data?: HomeMediaData) {
   const images = new Set<string>();
-  const videos = new Set<string>();
+
   const add = (value?: string | null) => {
     const url = resolve(value);
-    if (!url) return;
-    (isVideo(url) ? videos : images).add(url);
+    if (!url || isVideo(url)) return;
+    images.add(url);
   };
 
-  STATIC_MEDIA.forEach(add);
+  STATIC_IMAGES.forEach(add);
   add(data?.introduction?.image_url);
-  for (const p of data?.beforeAfter ?? []) {
-    add(p.before_image);
-    add(p.after_image);
+
+  for (const project of data?.beforeAfter ?? []) {
+    add(project.before_image);
+    add(project.after_image);
   }
-  for (const v of [...(data?.shortVideos ?? []), ...(data?.longVideos ?? [])]) {
-    add(v.thumbnail_url);
-    add(v.video_url);
+
+  for (const video of [...(data?.shortVideos ?? []), ...(data?.longVideos ?? [])]) {
+    add(video.thumbnail_url);
   }
-  return { images: [...images], videos: [...videos] };
+
+  return [...images];
 }
 
 function warmImage(url: string) {
   if (warmed.has(url)) return Promise.resolve();
+
   return new Promise<void>((resolvePromise) => {
     const img = new Image();
     img.decoding = "async";
@@ -53,39 +58,21 @@ function warmImage(url: string) {
   });
 }
 
-function warmVideo(url: string) {
-  if (warmed.has(url)) return Promise.resolve();
-  return new Promise<void>((resolvePromise) => {
-    const video = document.createElement("video");
-    video.preload = "auto";
-    video.muted = true;
-    video.playsInline = true;
-    let done = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      resolvePromise();
-    };
-    video.addEventListener("loadeddata", finish, { once: true });
-    video.addEventListener("canplay", finish, { once: true });
-    video.addEventListener("error", finish, { once: true });
-    video.src = url;
-    video.load();
-    window.setTimeout(finish, 4500);
-    warmed.set(url, video);
-  });
-}
-
-export async function preloadPortfolioMedia(data?: HomeMediaData, timeoutMs = 6500) {
+/**
+ * Video files are intentionally NOT downloaded through detached hidden
+ * <video> elements here. The ShortForm carousel keeps the real <video>
+ * elements mounted, so their own browser buffers are the buffers that will
+ * actually be used for playback. Detached elements can compete for bandwidth
+ * and their decoded frames are not transferable to another video element.
+ */
+export async function preloadPortfolioMedia(data?: HomeMediaData, timeoutMs = 4500) {
   if (typeof window === "undefined") return;
-  const { images, videos } = collect(data);
-  const work = [...images.map(warmImage), ...videos.map(warmVideo)];
-  if (!work.length) return;
+
+  const images = collectImages(data);
+  if (!images.length) return;
 
   await Promise.race([
-    Promise.all(work),
+    Promise.all(images.map(warmImage)),
     new Promise<void>((resolvePromise) => window.setTimeout(resolvePromise, timeoutMs)),
   ]);
-
-  void Promise.all(work).catch(() => undefined);
 }

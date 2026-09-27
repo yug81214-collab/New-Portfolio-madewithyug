@@ -57,7 +57,7 @@ export function useVideos(kind: "short" | "long") {
   const { data: homeData, isLoading, error } = usePublicHomeData();
   const videos = kind === "short" ? homeData?.shortVideos : homeData?.longVideos;
   return {
-    data: (videos ?? []) as Video[],
+    data: videos as Video[] | undefined,
     isLoading,
     error,
   };

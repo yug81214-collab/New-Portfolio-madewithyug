@@ -101,30 +101,12 @@ export function AutoPlayVideo({
   active?: boolean;
 }) {
   const mediaUrl = useMediaUrl(url);
+  const posterUrl = useMediaUrl(poster);
   const finalUrl = mediaUrl || url;
   const mediaRef = useRef<HTMLVideoElement>(null);
-  const [isVisible, setIsVisible] = useState(active);
-
-  useEffect(() => {
-    if (!active || !mediaRef.current || typeof IntersectionObserver === "undefined") return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "240px 0px", threshold: 0.01 },
-    );
-
-    observer.observe(mediaRef.current);
-    return () => observer.disconnect();
-  }, [active]);
-
-  if (!finalUrl) return null;
 
   const resolvedPoster =
+    posterUrl ||
     poster ||
     POSTER_BY_VIDEO[finalUrl] ||
     POSTER_BY_VIDEO[url] ||
@@ -132,71 +114,114 @@ export function AutoPlayVideo({
       ? finalUrl.replace(/\.mp4$/i, ".jpg")
       : undefined);
 
-  if (!active || !isVisible) {
-    return resolvedPoster ? (
-      <img src={resolvedPoster} alt={alt} loading="lazy" decoding="async" className={className} />
-    ) : (
-      <video src={finalUrl} muted preload="auto" className={className} />
-    );
-  }
-
-  if (allowEmbeds) {
-    if (finalUrl.includes("youtube.com") || finalUrl.includes("youtu.be")) {
-      let videoId = "";
-      if (finalUrl.includes("watch?v=")) {
-        videoId = finalUrl.split("watch?v=")[1]?.split("&")[0] || "";
-      } else if (finalUrl.includes("youtu.be/")) {
-        videoId = finalUrl.split("youtu.be/")[1]?.split("?")[0] || "";
-      } else if (finalUrl.includes("embed/")) {
-        videoId = finalUrl.split("embed/")[1]?.split("?")[0] || "";
-      }
-
-      if (videoId) {
-        const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0&playsinline=1`;
-        return (
-          <iframe
-            src={embedUrl}
-            title={alt}
-            className={`${className} border-0 pointer-events-none scale-125`}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          />
-        );
-      }
+  useEffect(() => {
+    if (!mediaRef.current || !active) {
+      mediaRef.current?.pause();
+      return;
     }
 
-    if (finalUrl.includes("vimeo.com")) {
-      let videoId = "";
-      if (finalUrl.includes("player.vimeo.com/video/")) {
-        videoId = finalUrl.split("player.vimeo.com/video/")[1]?.split("?")[0] || "";
-      } else {
-        videoId = finalUrl.split("vimeo.com/")[1]?.split("?")[0] || "";
-      }
+    const video = mediaRef.current;
+    let cancelled = false;
 
-      if (videoId) {
-        const embedUrl = `https://player.vimeo.com/video/${videoId}?background=1&autoplay=1&loop=1&byline=0&title=0&muted=1`;
-        return (
-          <iframe
-            src={embedUrl}
-            title={alt}
-            className={`${className} border-0 pointer-events-none scale-125`}
-            allow="autoplay; fullscreen"
-          />
-        );
+    const startPlayback = async () => {
+      if (cancelled) return;
+      try {
+        if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+          video.load();
+        }
+        await video.play();
+      } catch {
+        // Autoplay can be rejected by browser policy. The video stays ready
+        // and will start as soon as it receives another activation.
       }
+    };
+
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      void startPlayback();
+    } else {
+      video.addEventListener("canplay", startPlayback, { once: true });
+      video.addEventListener("loadeddata", startPlayback, { once: true });
+    }
+
+    return () => {
+      cancelled = true;
+      video.removeEventListener("canplay", startPlayback);
+      video.removeEventListener("loadeddata", startPlayback);
+    };
+  }, [active, finalUrl]);
+
+  useEffect(() => {
+    if (!mediaRef.current || !finalUrl) return;
+    // Keep the real video element mounted for every carousel card. This is
+    // critical: detached warm-up elements do not transfer their decoded buffer
+    // to the visible element. preload="auto" lets every visible card request
+    // data ahead of activation while only the active card plays.
+    mediaRef.current.preload = "auto";
+    mediaRef.current.muted = true;
+    mediaRef.current.defaultMuted = true;
+    mediaRef.current.playsInline = true;
+    mediaRef.current.load();
+  }, [finalUrl]);
+
+  if (!finalUrl) return null;
+
+  if (allowEmbeds && (finalUrl.includes("youtube.com") || finalUrl.includes("youtu.be"))) {
+    let videoId = "";
+    if (finalUrl.includes("watch?v=")) {
+      videoId = finalUrl.split("watch?v=")[1]?.split("&")[0] || "";
+    } else if (finalUrl.includes("youtu.be/")) {
+      videoId = finalUrl.split("youtu.be/")[1]?.split("?")[0] || "";
+    } else if (finalUrl.includes("embed/")) {
+      videoId = finalUrl.split("embed/")[1]?.split("?")[0] || "";
+    }
+
+    if (videoId) {
+      const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=${active ? 1 : 0}&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0&playsinline=1`;
+      return (
+        <iframe
+          src={embedUrl}
+          title={alt}
+          className={`${className} border-0 pointer-events-none scale-125`}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        />
+      );
+    }
+  }
+
+  if (allowEmbeds && finalUrl.includes("vimeo.com")) {
+    let videoId = "";
+    if (finalUrl.includes("player.vimeo.com/video/")) {
+      videoId = finalUrl.split("player.vimeo.com/video/")[1]?.split("?")[0] || "";
+    } else {
+      videoId = finalUrl.split("vimeo.com/")[1]?.split("?")[0] || "";
+    }
+
+    if (videoId) {
+      const embedUrl = `https://player.vimeo.com/video/${videoId}?background=1&autoplay=${active ? 1 : 0}&loop=1&byline=0&title=0&muted=1`;
+      return (
+        <iframe
+          src={embedUrl}
+          title={alt}
+          className={`${className} border-0 pointer-events-none scale-125`}
+          allow="autoplay; fullscreen"
+        />
+      );
     }
   }
 
   return (
     <video
-      src={finalUrl}
       ref={mediaRef}
-      poster={poster || POSTER_BY_VIDEO[finalUrl] || resolvedPoster}
-      autoPlay
+      src={finalUrl}
+      poster={resolvedPoster}
+      autoPlay={false}
       loop
       muted
+      defaultMuted
       playsInline
       preload="auto"
       className={className}
+      aria-label={alt}
     />
   );
 }
@@ -239,9 +264,13 @@ export function ShortForm() {
         }))
       : defaultReels;
 
-  const n = reels.length;
-  const go = (dir: number) => setIndex((i) => (i + dir + n) % n);
-  const current = reels[index] || reels[0];
+  const safeReels = reels.length > 0 ? reels : defaultReels;
+  const n = safeReels.length;
+  const activeIndex = n > 0 ? index % n : 0;
+  const go = (dir: number) => {
+    if (n === 0) return;
+    setIndex((i) => (i + dir + n) % n);
+  };
 
   return (
     <section id="work" className="relative overflow-hidden py-24 sm:py-36">
@@ -265,8 +294,8 @@ export function ShortForm() {
 
         {/* 3D coverflow stage */}
         <div className="perspective-stage relative mt-20 h-[26rem] sm:h-[34rem]">
-          {reels.map((r, i) => {
-            let offset = i - index;
+          {safeReels.map((r, i) => {
+            let offset = i - activeIndex;
             if (offset > n / 2) offset -= n;
             if (offset < -n / 2) offset += n;
             const abs = Math.abs(offset);
@@ -358,7 +387,7 @@ export function ShortForm() {
                 aria-label={`Go to ${r.title}`}
                 onClick={() => setIndex(i)}
                 className={`h-1.5 rounded-full transition-all duration-500 ${
-                  i === index ? "w-8 bg-[#2fd3c6]" : "w-3 bg-white/20"
+                  i === activeIndex ? "w-8 bg-[#2fd3c6]" : "w-3 bg-white/20"
                 }`}
               />
             ))}

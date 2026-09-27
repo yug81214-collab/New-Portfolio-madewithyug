@@ -832,14 +832,24 @@ export const adminListMedia = createServerFn({ method: "GET" }).handler(async ()
 });
 
 export const adminCreateUploadUrl = createServerFn({ method: "POST" })
-  .validator((data: { ext: string }) => ({
+  .validator((data: { ext: string; filename?: string }) => ({
     ext: (String(data?.ext ?? "jpg").match(/[a-z0-9]{1,8}/i)?.[0] ?? "jpg").toLowerCase(),
+    filename: String(data?.filename ?? "").trim(),
   }))
   .handler(async ({ data }) => {
     const { requirePermission } = await import("./admin.server");
     await requirePermission("MEDIA_UPLOAD");
     const { supabaseAdmin } = await import("@/lib/supabaseAdmin");
-    const path = `portfolio-media/${crypto.randomUUID()}.${data.ext}`;
+
+    const normalizedName = data.filename.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const featuredNames: Record<string, string> = {
+      "final-wizard-trader-reel-2-mp4": "final-wizard-trader-reel-2.mp4",
+      "editly-saas-final-mp4": "editly-saas-final.mp4",
+    };
+    const fixedName = featuredNames[normalizedName];
+    const path = fixedName
+      ? `portfolio-media/${fixedName}`
+      : `portfolio-media/${crypto.randomUUID()}.${data.ext}`;
 
     try {
       try {

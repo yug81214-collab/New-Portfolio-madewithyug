@@ -88,6 +88,30 @@ function CardImage({ src, alt }: { src?: string; alt: string }) {
 
 export function LongForm() {
   const { data: cmsVideos } = useVideos("long");
+  const [featuredReady, setFeaturedReady] = useState(false);
+
+  useEffect(() => {
+    const url = useMediaUrl(FEATURED_LONG.video_url);
+    let cancelled = false;
+
+    if (!url) return;
+
+    void fetch(url, {
+      method: "GET",
+      headers: { Range: "bytes=0-0" },
+      cache: "no-store",
+    })
+      .then((response) => {
+        if (!cancelled) setFeaturedReady(response.ok || response.status === 206);
+      })
+      .catch(() => {
+        if (!cancelled) setFeaturedReady(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const cmsItems: LongItem[] =
     cmsVideos?.map((v) => ({
@@ -106,7 +130,10 @@ export function LongForm() {
       item.id === FEATURED_LONG.id ||
       item.video_url?.includes("editly-saas-final.mp4"),
   );
-  const items = hasFeatured ? baseItems : [...baseItems, FEATURED_LONG];
+  const items =
+    hasFeatured || featuredReady
+      ? baseItems.concat(hasFeatured ? [] : [FEATURED_LONG])
+      : baseItems;
 
   return (
     <section id="long-form" className="relative overflow-hidden py-24 sm:py-36">

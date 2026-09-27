@@ -78,6 +78,15 @@ const defaultReels: ReelItem[] = [
   },
 ];
 
+const FEATURED_SHORT: ReelItem = {
+  id: "featured-wizard-trader-reel-2",
+  title: "Wizard Trader Reel 2",
+  category: "Short Form",
+  image: short1,
+  video_url: "portfolio-media/final-wizard-trader-reel-2.mp4",
+  length_label: "0:59",
+};
+
 const POSTER_BY_VIDEO: Record<string, string> = {
   [MEDIA.long1Video]: MEDIA.long1Poster,
   [MEDIA.baRawVideo]: MEDIA.baRawPoster,
@@ -91,14 +100,12 @@ export function AutoPlayVideo({
   className = "h-full w-full object-cover",
   allowEmbeds = false,
   poster,
-  active = true,
 }: {
   url: string;
   alt?: string;
   className?: string;
   allowEmbeds?: boolean;
   poster?: string;
-  active?: boolean;
 }) {
   const mediaUrl = useMediaUrl(url);
   const posterUrl = useMediaUrl(poster);
@@ -125,27 +132,82 @@ export function AutoPlayVideo({
     video.autoplay = true;
 
     let cancelled = false;
-    const retryDelays = [0, 100, 300, 700, 1500, 3000, 6000];
-    const timers: ReturnType<typeof window.setTimeout>[] = [];
+    let recoveryTimer: ReturnType<typeof window.setTimeout> | null = null;
+    let stagnantTicks = 0;
+    let lastTime = video.currentTime;
 
-    const play = () => {
+    const safePlay = () => {
       if (cancelled) return;
+      if (video.ended) {
+        try {
+          video.currentTime = 0;
+        } catch {
+          // Ignore an invalid seek while the source is being reloaded.
+        }
+      }
+      if (video.readyState === HTMLMediaElement.HAVE_NOTHING) {
+        video.load();
+      }
       void video.play().catch(() => {
-        // A browser may reject a play request temporarily while data is
-        // buffering or decoder resources are being scheduled. Media events
-        // and bounded retries below will request playback again.
+        // A temporary autoplay/buffering rejection is recovered by the
+        // watchdog and media-event retry below.
       });
     };
 
-    retryDelays.forEach((delay) => {
-      timers.push(
-        window.setTimeout(() => {
-          if (!cancelled) play();
-        }, delay),
-      );
-    });
+    const recoverSource = () => {
+      if (cancelled) return;
+      const resumeAt = Number.isFinite(video.currentTime) ? video.currentTime : 0;
 
-    const onMediaEvent = () => play();
+      try {
+        video.load();
+      } catch {
+        safePlay();
+        return;
+      }
+
+      const restoreAndPlay = () => {
+        if (cancelled) return;
+        try {
+          if (Number.isFinite(video.duration) && video.duration > 0) {
+            video.currentTime = Math.min(resumeAt, Math.max(0, video.duration - 0.05));
+          } else if (resumeAt > 0) {
+            video.currentTime = resumeAt;
+          }
+        } catch {
+          // Keep the freshly loaded position when seeking is not available yet.
+        }
+        safePlay();
+      };
+
+      video.addEventListener("loadedmetadata", restoreAndPlay, { once: true });
+      window.setTimeout(() => {
+        video.removeEventListener("loadedmetadata", restoreAndPlay);
+        restoreAndPlay();
+      }, 1500);
+    };
+
+    const scheduleRecovery = () => {
+      if (cancelled || recoveryTimer) return;
+      recoveryTimer = window.setTimeout(() => {
+        recoveryTimer = null;
+        if (video.paused || video.ended) {
+          safePlay();
+          return;
+        }
+
+        if (
+          video.readyState <= HTMLMediaElement.HAVE_CURRENT_DATA &&
+          video.networkState !== HTMLMediaElement.NETWORK_EMPTY
+        ) {
+          recoverSource();
+        } else {
+          safePlay();
+        }
+      }, 2500);
+    };
+
+    const onProblem = () => scheduleRecovery();
+
     const events = [
       "loadedmetadata",
       "loadeddata",
@@ -154,35 +216,64 @@ export function AutoPlayVideo({
       "progress",
       "durationchange",
       "playing",
-      "stalled",
       "waiting",
+      "stalled",
       "suspend",
       "pause",
+      "error",
+      "emptied",
     ];
 
     events.forEach((eventName) => {
-      video.addEventListener(eventName, onMediaEvent);
+      video.addEventListener(eventName, onProblem);
     });
 
-    // Keep every carousel video actively requesting playback. There is no
-    // center-card/side-card pause rule for ShortForm.
     if (video.readyState === HTMLMediaElement.HAVE_NOTHING) {
       video.load();
     }
-    play();
+    safePlay();
 
-    const onVisibility = () => {
-      if (!document.hidden) play();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
+    const watchdog = window.setInterval(() => {
+      if (cancelled) return;
+
+      const currentTime = video.currentTime;
+      const moved =
+        Number.isFinite(currentTime) &&
+        Number.isFinite(lastTime) &&
+        Math.abs(currentTime - lastTime) > 0.02;
+
+      if (!video.paused && !video.ended && video.duration > 0) {
+        stagnantTicks = moved ? 0 : stagnantTicks + 1;
+      } else {
+        stagnantTicks = 0;
+      }
+
+      lastTime = currentTime;
+
+      if (video.ended) {
+        try {
+          video.currentTime = 0;
+        } catch {
+          // Ignore and let play() request the next loop.
+        }
+        safePlay();
+      } else if (video.paused) {
+        safePlay();
+      } else if (stagnantTicks >= 4) {
+        // About 10 seconds without time advancing: rebuild the media request
+        // instead of allowing a permanently stalled player.
+        stagnantTicks = 0;
+        recoverSource();
+      }
+    }, 2500);
 
     return () => {
       cancelled = true;
-      timers.forEach((timer) => window.clearTimeout(timer));
+      window.clearInterval(watchdog);
+      if (recoveryTimer) window.clearTimeout(recoveryTimer);
       events.forEach((eventName) => {
-        video.removeEventListener(eventName, onMediaEvent);
+        video.removeEventListener(eventName, onProblem);
       });
-      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [finalUrl]);
 
@@ -209,7 +300,7 @@ export function AutoPlayVideo({
     }
 
     if (videoId) {
-      const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=${active ? 1 : 0}&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0&playsinline=1`;
+      const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0&playsinline=1`;
       return (
         <iframe
           src={embedUrl}
@@ -230,7 +321,7 @@ export function AutoPlayVideo({
     }
 
     if (videoId) {
-      const embedUrl = `https://player.vimeo.com/video/${videoId}?background=1&autoplay=${active ? 1 : 0}&loop=1&byline=0&title=0&muted=1`;
+      const embedUrl = `https://player.vimeo.com/video/${videoId}?background=1&autoplay=1&loop=1&byline=0&title=0&muted=1`;
       return (
         <iframe
           src={embedUrl}
@@ -247,7 +338,7 @@ export function AutoPlayVideo({
       ref={mediaRef}
       src={finalUrl}
       poster={resolvedPoster}
-      autoPlay={active}
+      autoPlay
       loop
       muted
       defaultMuted
@@ -285,19 +376,24 @@ export function ShortForm() {
   const { data: cmsVideos } = useVideos("short");
   const [index, setIndex] = useState(0);
 
-  const reels: ReelItem[] =
-    cmsVideos !== undefined
-      ? cmsVideos.map((v) => ({
-          id: v.id,
-          title: v.title,
-          category: v.category || "Short VSL",
-          image: v.thumbnail_url || "",
-          video_url: v.video_url,
-          length_label: v.length_label,
-        }))
-      : defaultReels;
+  const cmsReels: ReelItem[] =
+    cmsVideos?.map((v) => ({
+      id: v.id,
+      title: v.title,
+      category: v.category || "Short VSL",
+      image: v.thumbnail_url || "",
+      video_url: v.video_url,
+      length_label: v.length_label,
+    })) ?? [];
 
-  const safeReels = reels.length > 0 ? reels : defaultReels;
+  const baseReels = cmsVideos !== undefined ? cmsReels : defaultReels;
+  const hasFeatured = baseReels.some(
+    (item) =>
+      item.id === FEATURED_SHORT.id ||
+      item.video_url?.includes("final-wizard-trader-reel-2.mp4"),
+  );
+  const reels = hasFeatured ? baseReels : [...baseReels, FEATURED_SHORT];
+  const safeReels = reels.length > 0 ? reels : [FEATURED_SHORT];
   const n = safeReels.length;
   const activeIndex = n > 0 ? index % n : 0;
   const go = (dir: number) => {
@@ -358,7 +454,6 @@ export function ShortForm() {
                     alt={r.title}
                     className="h-full w-full object-cover"
                     poster={r.image}
-                    active={true}
                   />
                 ) : (
                   <ReelCardImage
@@ -366,24 +461,8 @@ export function ShortForm() {
                     alt={`${r.title} — ${r.category} vertical video edit`}
                   />
                 )}
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
 
-                {/* Overlay details */}
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 p-5 text-left">
-                  <span className="inline-block rounded-full bg-[#016764]/80 px-2.5 py-0.5 text-[10px] font-semibold text-white uppercase backdrop-blur-sm">
-                    {r.category}
-                  </span>
-                  <h3 className="mt-1.5 text-sm font-semibold text-white sm:text-base">
-                    {r.title}
-                  </h3>
-                  {r.length_label && (
-                    <span className="mt-0.5 block text-xs text-white/70">{r.length_label}</span>
-                  )}
-                </div>
-
-                {active && (
-                  <div className="pointer-events-none absolute inset-0 rounded-[30px] shadow-[inset_0_0_60px_-10px_rgba(47,211,198,0.45)]" />
-                )}
               </motion.button>
             );
           })}
@@ -413,7 +492,7 @@ export function ShortForm() {
         {/* dots & CTA */}
         <div className="mt-12 flex flex-col items-center gap-6">
           <div className="flex items-center gap-2">
-            {reels.map((r, i) => (
+            {safeReels.map((r, i) => (
               <button
                 key={r.id || r.title + i}
                 type="button"

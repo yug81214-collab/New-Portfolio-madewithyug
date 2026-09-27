@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, ArrowRight, Film } from "lucide-react";
 import { SectionHeading } from "./SectionHeading";
@@ -102,6 +102,25 @@ export function AutoPlayVideo({
 }) {
   const mediaUrl = useMediaUrl(url);
   const finalUrl = mediaUrl || url;
+  const mediaRef = useRef<HTMLVideoElement>(null);
+  const [isVisible, setIsVisible] = useState(active);
+
+  useEffect(() => {
+    if (!active || !mediaRef.current || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "240px 0px", threshold: 0.01 },
+    );
+
+    observer.observe(mediaRef.current);
+    return () => observer.disconnect();
+  }, [active]);
 
   if (!finalUrl) return null;
 
@@ -113,9 +132,9 @@ export function AutoPlayVideo({
       ? finalUrl.replace(/\.mp4$/i, ".jpg")
       : undefined);
 
-  if (!active) {
+  if (!active || !isVisible) {
     return resolvedPoster ? (
-      <img src={resolvedPoster} alt={alt} loading="lazy" className={className} />
+      <img src={resolvedPoster} alt={alt} loading="lazy" decoding="async" className={className} />
     ) : (
       <video src={finalUrl} muted preload="none" className={className} />
     );
@@ -170,12 +189,14 @@ export function AutoPlayVideo({
   return (
     <video
       src={finalUrl}
+      ref={mediaRef}
       poster={poster || POSTER_BY_VIDEO[finalUrl] || resolvedPoster}
       autoPlay
       loop
       muted
       playsInline
-      preload="metadata"
+      preload="none"
+      loading="lazy"
       className={className}
     />
   );
@@ -184,7 +205,7 @@ export function AutoPlayVideo({
 function ReelCardImage({ src, alt }: { src?: string; alt: string }) {
   const url = useMediaUrl(src);
   if (url) {
-    return <img src={url} alt={alt} loading="lazy" className="h-full w-full object-cover" />;
+    return <img src={url} alt={alt} loading="lazy" decoding="async" className="h-full w-full object-cover" />;
   }
   return (
     <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-[#013534] via-[#051d20] to-[#011417] p-6 text-center">

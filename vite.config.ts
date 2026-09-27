@@ -72,6 +72,12 @@ export default defineConfig({
     // Keep these packages in the normal transform pipeline so client.tsx can load
     // reliably after a server restart or HMR update.
     optimizeDeps: {
+      // The preview sandbox can retain an old optimized-deps manifest after a
+      // restart. That makes module requests fall back to the HTML shell, which
+      // browsers reject as a JavaScript module (the reported MIME error).
+      // Keep dependency discovery off so Vite serves imports from the normal
+      // transform pipeline instead of stale .vite/deps files.
+      noDiscovery: true,
       exclude: ["@tanstack/router-core", "seroval"],
     },
     server: {

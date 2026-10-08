@@ -22,6 +22,7 @@ export const BUCKET = "site-media";
 export function isStoragePath(value: string | null | undefined): boolean {
   if (!value) return false;
   if (value.startsWith("/") || value.startsWith("./")) return false;
+  if (value.startsWith("portfolio-media/") || value.startsWith("software/")) return false;
   if (value.includes("/assets/aistudio/__l5e/assets-v1")) return false;
   return !/^(https?:)?\/\//.test(value) && !value.startsWith("data:");
 }
@@ -79,6 +80,15 @@ export function useMediaUrls(values: (string | null | undefined)[]) {
 
 export function getMediaUrl(value: string | null | undefined): string {
   if (!value) return "";
+
+  // Normalize local static public paths
+  if (value.startsWith("portfolio-media/")) {
+    return "/" + value;
+  }
+  if (value.startsWith("/portfolio-media/")) {
+    return value;
+  }
+
   if (!isStoragePath(value)) return value;
 
   const supabaseUrl =
@@ -86,7 +96,9 @@ export function getMediaUrl(value: string | null | undefined): string {
     (typeof process !== "undefined" ? process.env.VITE_SUPABASE_URL : undefined) ||
     "";
 
-  if (!supabaseUrl) return value;
+  if (!supabaseUrl) {
+    return value.startsWith("/") ? value : "/" + value;
+  }
 
   const cleanPath = value.replace(/^\/+/, "");
   return supabaseUrl + "/storage/v1/object/public/" + BUCKET + "/" + cleanPath;

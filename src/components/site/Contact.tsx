@@ -94,7 +94,50 @@ export function Contact() {
           description: values.description,
         },
       });
-      setEmailDelivered(result.emailSent);
+
+      let delivered = result.emailSent;
+
+      // Dual-channel: if server-side dispatch didn't send email, attempt client-side EmailJS
+      if (!delivered) {
+        const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || result.config?.serviceId;
+        const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || result.config?.templateId;
+        const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || result.config?.publicKey;
+
+        if (serviceId && templateId && publicKey) {
+          try {
+            const emailjs = (await import("@emailjs/browser")).default;
+            await emailjs.send(
+              serviceId,
+              templateId,
+              result.templateParams || {
+                name: values.name,
+                from_name: values.name,
+                user_name: values.name,
+                email: values.email,
+                from_email: values.email,
+                reply_to: values.email,
+                phone: values.phone,
+                phone_number: values.phone,
+                company: values.company || "Not provided",
+                deadline: values.deadline,
+                video_type: values.videoType,
+                reference: values.reference || "None",
+                description: values.description,
+                message: `Project Type: ${values.videoType}\nDeadline: ${values.deadline}\nCompany: ${values.company || "Not provided"}\nPhone: ${values.phone}\nReference: ${values.reference || "None"}\n\nProject Description:\n${values.description}`,
+                to_name: "Yug",
+                to_email: RECIPIENT,
+                subject: `New Project Brief from ${values.name} (${values.videoType})`,
+              },
+              { publicKey },
+            );
+            delivered = true;
+          } catch (clientErr) {
+            console.warn("[Contact] Client-side EmailJS delivery attempt:", clientErr);
+          }
+        }
+      }
+
+      setEmailDelivered(delivered);
       setStatus("sent");
     } catch (err) {
       console.error("EmailJS submission failed:", err);
@@ -122,7 +165,7 @@ export function Contact() {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="py-14 text-center"
+              className="py-12 text-center"
             >
               <motion.span
                 initial={{ scale: 0 }}
@@ -136,8 +179,22 @@ export function Contact() {
                 Thanks for reaching out
               </h3>
               <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-white/80">
-                Thanks for reaching out; your brief has been received. {emailDelivered === false ? " The brief is stored, but the email notification is temporarily unavailable." : " You\'ll receive a message via email or WhatsApp after review."}
+                {emailDelivered
+                  ? "Your brief has been delivered to Yug's inbox and saved. You will receive a response within 24 hours."
+                  : "Thanks for reaching out! Your brief has been received and saved. You'll receive a message via email or WhatsApp after review."}
               </p>
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                <a
+                  href={`mailto:${RECIPIENT}?subject=${encodeURIComponent(
+                    `Project Brief: ${values.name} (${values.videoType || "Video"})`,
+                  )}&body=${encodeURIComponent(
+                    `Hi Yug,\n\nHere is my project brief:\n- Name: ${values.name}\n- Company: ${values.company || "N/A"}\n- Email: ${values.email}\n- Phone: ${values.phone}\n- Deadline: ${values.deadline}\n- Video Type: ${values.videoType}\n- Reference: ${values.reference || "N/A"}\n\nDetails:\n${values.description}\n`,
+                  )}`}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-xs font-medium text-white/90 backdrop-blur-md transition-all hover:bg-white/10 hover:border-white/25"
+                >
+                  <Send className="h-3.5 w-3.5" /> Direct email backup to {RECIPIENT}
+                </a>
+              </div>
             </motion.div>
           ) : (
             <form onSubmit={onSubmit} noValidate>

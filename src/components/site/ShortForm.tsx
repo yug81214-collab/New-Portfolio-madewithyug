@@ -76,16 +76,23 @@ const defaultReels: ReelItem[] = [
     video_url: MEDIA.shorts[6]?.video,
     length_label: "0:17",
   },
+  {
+    id: "default-8",
+    title: "Wizard Trader Reel 2",
+    category: "VSL Short",
+    image: MEDIA.shorts[7]?.poster || "/portfolio-media/final-wizard-trader-reel-2.jpg",
+    video_url: MEDIA.shorts[7]?.video || "/portfolio-media/final-wizard-trader-reel-2.mp4",
+    length_label: "0:59",
+  },
+  {
+    id: "default-9",
+    title: "High-Impact Kinetic Cut",
+    category: "VSL Short",
+    image: MEDIA.shorts[8]?.poster || "/portfolio-media/yug-v1.jpg",
+    video_url: MEDIA.shorts[8]?.video || "/portfolio-media/yug-v1.mp4",
+    length_label: "0:52",
+  },
 ];
-
-const FEATURED_SHORT: ReelItem = {
-  id: "featured-wizard-trader-reel-2",
-  title: "Wizard Trader Reel 2",
-  category: "Short Form",
-  image: short1,
-  video_url: "portfolio-media/final-wizard-trader-reel-2.mp4",
-  length_label: "0:59",
-};
 
 const POSTER_BY_VIDEO: Record<string, string> = {
   [MEDIA.long1Video]: MEDIA.long1Poster,
@@ -100,12 +107,14 @@ export function AutoPlayVideo({
   className = "h-full w-full object-cover",
   allowEmbeds = false,
   poster,
+  shouldPlay = true,
 }: {
   url: string;
   alt?: string;
   className?: string;
   allowEmbeds?: boolean;
   poster?: string;
+  shouldPlay?: boolean;
 }) {
   const mediaUrl = useMediaUrl(url);
   const posterUrl = useMediaUrl(poster);
@@ -129,163 +138,50 @@ export function AutoPlayVideo({
     video.defaultMuted = true;
     video.playsInline = true;
     video.preload = "auto";
-    video.autoplay = true;
+    video.loop = true;
 
     let cancelled = false;
-    let recoveryTimer: ReturnType<typeof window.setTimeout> | null = null;
-    let stagnantTicks = 0;
-    let lastTime = video.currentTime;
 
-    const safePlay = () => {
-      if (cancelled) return;
-      if (video.ended) {
-        try {
-          video.currentTime = 0;
-        } catch {
-          // Ignore an invalid seek while the source is being reloaded.
+    const playVideo = () => {
+      if (cancelled || !video) return;
+      if (shouldPlay) {
+        const promise = video.play();
+        if (promise !== undefined) {
+          promise.catch(() => {
+            // Autoplay policy or buffering - will play on interaction
+          });
         }
-      }
-      if (video.readyState === HTMLMediaElement.HAVE_NOTHING) {
-        video.load();
-      }
-      void video.play().catch(() => {
-        // A temporary autoplay/buffering rejection is recovered by the
-        // watchdog and media-event retry below.
-      });
-    };
-
-    const recoverSource = () => {
-      if (cancelled) return;
-      const resumeAt = Number.isFinite(video.currentTime) ? video.currentTime : 0;
-
-      try {
-        video.load();
-      } catch {
-        safePlay();
-        return;
-      }
-
-      const restoreAndPlay = () => {
-        if (cancelled) return;
-        try {
-          if (Number.isFinite(video.duration) && video.duration > 0) {
-            video.currentTime = Math.min(resumeAt, Math.max(0, video.duration - 0.05));
-          } else if (resumeAt > 0) {
-            video.currentTime = resumeAt;
-          }
-        } catch {
-          // Keep the freshly loaded position when seeking is not available yet.
-        }
-        safePlay();
-      };
-
-      video.addEventListener("loadedmetadata", restoreAndPlay, { once: true });
-      window.setTimeout(() => {
-        video.removeEventListener("loadedmetadata", restoreAndPlay);
-        restoreAndPlay();
-      }, 1500);
-    };
-
-    const scheduleRecovery = () => {
-      if (cancelled || recoveryTimer) return;
-      recoveryTimer = window.setTimeout(() => {
-        recoveryTimer = null;
-        if (video.paused || video.ended) {
-          safePlay();
-          return;
-        }
-
-        if (
-          video.readyState <= HTMLMediaElement.HAVE_CURRENT_DATA &&
-          video.networkState !== HTMLMediaElement.NETWORK_EMPTY
-        ) {
-          recoverSource();
-        } else {
-          safePlay();
-        }
-      }, 2500);
-    };
-
-    const onProblem = () => scheduleRecovery();
-
-    const events = [
-      "loadedmetadata",
-      "loadeddata",
-      "canplay",
-      "canplaythrough",
-      "progress",
-      "durationchange",
-      "playing",
-      "waiting",
-      "stalled",
-      "suspend",
-      "pause",
-      "error",
-      "emptied",
-    ];
-
-    events.forEach((eventName) => {
-      video.addEventListener(eventName, onProblem);
-    });
-
-    if (video.readyState === HTMLMediaElement.HAVE_NOTHING) {
-      video.load();
-    }
-    safePlay();
-
-    const watchdog = window.setInterval(() => {
-      if (cancelled) return;
-
-      const currentTime = video.currentTime;
-      const moved =
-        Number.isFinite(currentTime) &&
-        Number.isFinite(lastTime) &&
-        Math.abs(currentTime - lastTime) > 0.02;
-
-      if (!video.paused && !video.ended && video.duration > 0) {
-        stagnantTicks = moved ? 0 : stagnantTicks + 1;
       } else {
-        stagnantTicks = 0;
+        video.pause();
       }
+    };
 
-      lastTime = currentTime;
+    playVideo();
 
-      if (video.ended) {
-        try {
-          video.currentTime = 0;
-        } catch {
-          // Ignore and let play() request the next loop.
-        }
-        safePlay();
-      } else if (video.paused) {
-        safePlay();
-      } else if (stagnantTicks >= 4) {
-        // About 10 seconds without time advancing: rebuild the media request
-        // instead of allowing a permanently stalled player.
-        stagnantTicks = 0;
-        recoverSource();
+    const onUserInteraction = () => {
+      if (shouldPlay && video.paused) {
+        playVideo();
       }
-    }, 2500);
+    };
+    window.addEventListener("pointerdown", onUserInteraction, { once: true, passive: true });
+    window.addEventListener("touchstart", onUserInteraction, { once: true, passive: true });
+
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        video.pause();
+      } else if (shouldPlay) {
+        playVideo();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       cancelled = true;
-      window.clearInterval(watchdog);
-      if (recoveryTimer) window.clearTimeout(recoveryTimer);
-      events.forEach((eventName) => {
-        video.removeEventListener(eventName, onProblem);
-      });
+      window.removeEventListener("pointerdown", onUserInteraction);
+      window.removeEventListener("touchstart", onUserInteraction);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [finalUrl]);
-
-  useEffect(() => {
-    const video = mediaRef.current;
-    if (!video || !finalUrl) return;
-    video.preload = "auto";
-    video.muted = true;
-    video.defaultMuted = true;
-    video.playsInline = true;
-    video.autoplay = true;
-  }, [finalUrl]);
+  }, [finalUrl, shouldPlay]);
 
   if (!finalUrl) return null;
 
@@ -375,50 +271,20 @@ function ReelCardImage({ src, alt }: { src?: string; alt: string }) {
 export function ShortForm() {
   const { data: cmsVideos } = useVideos("short");
   const [index, setIndex] = useState(0);
-  const [featuredReady, setFeaturedReady] = useState(false);
-
-  useEffect(() => {
-    const url = useMediaUrl(FEATURED_SHORT.video_url);
-    let cancelled = false;
-
-    if (!url) return;
-
-    void fetch(url, {
-      method: "GET",
-      headers: { Range: "bytes=0-0" },
-      cache: "no-store",
-    })
-      .then((response) => {
-        if (!cancelled) setFeaturedReady(response.ok || response.status === 206);
-      })
-      .catch(() => {
-        if (!cancelled) setFeaturedReady(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const cmsReels: ReelItem[] =
-    cmsVideos?.map((v) => ({
-      id: v.id,
-      title: v.title,
-      category: v.category || "Short VSL",
-      image: v.thumbnail_url || "",
-      video_url: v.video_url,
-      length_label: v.length_label,
-    })) ?? [];
+    cmsVideos && cmsVideos.length > 0
+      ? cmsVideos.map((v) => ({
+          id: v.id,
+          title: v.title,
+          category: v.category || "Short VSL",
+          image: v.thumbnail_url || "",
+          video_url: v.video_url,
+          length_label: v.length_label,
+        }))
+      : defaultReels;
 
-  const baseReels = cmsVideos !== undefined ? cmsReels : defaultReels;
-  const hasFeatured = baseReels.some(
-    (item) =>
-      item.id === FEATURED_SHORT.id ||
-      item.video_url?.includes("final-wizard-trader-reel-2.mp4"),
-  );
-  const reels =
-    hasFeatured || featuredReady ? baseReels.concat(hasFeatured ? [] : [FEATURED_SHORT]) : baseReels;
-  const safeReels = reels.length > 0 ? reels : defaultReels;
+  const safeReels = cmsReels.length > 0 ? cmsReels : defaultReels;
   const n = safeReels.length;
   const activeIndex = n > 0 ? index % n : 0;
   const go = (dir: number) => {
@@ -478,6 +344,7 @@ export function ShortForm() {
                     alt={r.title}
                     className="h-full w-full object-cover"
                     poster={r.image}
+                    shouldPlay={abs <= 1}
                   />
                 ) : (
                   <ReelCardImage

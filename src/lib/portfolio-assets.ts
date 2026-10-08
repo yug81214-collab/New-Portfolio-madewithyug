@@ -19,5 +19,7 @@ export const MEDIA = {
     { video: `${BASE_URL}/s5.mp4`, poster: `${BASE_URL}/s5.jpg` },
     { video: `${BASE_URL}/s6.mp4`, poster: `${BASE_URL}/s6.jpg` },
     { video: `${BASE_URL}/s7.mp4`, poster: `${BASE_URL}/s7.jpg` },
+    { video: `${BASE_URL}/final-wizard-trader-reel-2.mp4`, poster: `${BASE_URL}/final-wizard-trader-reel-2.jpg` },
+    { video: `${BASE_URL}/yug-v1.mp4`, poster: `${BASE_URL}/yug-v1.jpg` },
   ],
 } as const;

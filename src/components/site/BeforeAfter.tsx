@@ -1,38 +1,9 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { motion } from "motion/react";
 import { Check, Eye, Scissors, X, Zap } from "lucide-react";
 import { SectionHeading } from "./SectionHeading";
 import { useMediaUrl, usePublicHomeData } from "@/lib/site-data";
-import { AutoPlayVideo } from "./ShortForm";
 import { MEDIA } from "@/lib/portfolio-assets";
-
-import beforeFallback from "@/assets/before.jpg";
-import afterFallback from "@/assets/after.jpg";
-
-function MediaDisplay({
-  src,
-  alt,
-  className,
-  poster,
-}: {
-  src: string;
-  alt: string;
-  className: string;
-  poster?: string;
-}) {
-  const isVideo =
-    /\.(mp4|webm|mov|mkv|avi)$/i.test(src) ||
-    src.startsWith("data:video/") ||
-    src.includes("youtube.com") ||
-    src.includes("youtu.be") ||
-    src.includes("vimeo.com");
-
-  if (isVideo) {
-    return <AutoPlayVideo url={src} alt={alt} className={className} poster={poster} />;
-  }
-
-  return <img src={src} alt={alt} loading="lazy" className={className} />;
-}
 
 export function BeforeAfter() {
   const { data } = usePublicHomeData();
@@ -41,11 +12,62 @@ export function BeforeAfter() {
   const activeProject = projects[0];
 
   const [view, setView] = useState<"before" | "after">("after");
+  const beforeVideoRef = useRef<HTMLVideoElement>(null);
+  const afterVideoRef = useRef<HTMLVideoElement>(null);
 
   const beforeImg =
     useMediaUrl(activeProject?.before_image || MEDIA.baRawVideo) || MEDIA.baRawVideo;
   const afterImg =
     useMediaUrl(activeProject?.after_image || MEDIA.baEditVideo) || MEDIA.baEditVideo;
+
+  const handleToggle = (nextView: "before" | "after") => {
+    if (nextView === view) return;
+    const current = view === "before" ? beforeVideoRef.current : afterVideoRef.current;
+    const next = nextView === "before" ? beforeVideoRef.current : afterVideoRef.current;
+    if (current && next && Number.isFinite(current.currentTime)) {
+      try {
+        next.currentTime = current.currentTime;
+      } catch {}
+      next.play().catch(() => {});
+    }
+    setView(nextView);
+  };
+
+  useEffect(() => {
+    const bVid = beforeVideoRef.current;
+    const aVid = afterVideoRef.current;
+
+    const playBoth = () => {
+      if (bVid) {
+        bVid.muted = true;
+        bVid.defaultMuted = true;
+        bVid.playsInline = true;
+        bVid.play().catch(() => {});
+      }
+      if (aVid) {
+        aVid.muted = true;
+        aVid.defaultMuted = true;
+        aVid.playsInline = true;
+        aVid.play().catch(() => {});
+      }
+    };
+
+    playBoth();
+
+    const onUserInteraction = () => {
+      if (bVid?.paused || aVid?.paused) {
+        playBoth();
+      }
+    };
+
+    window.addEventListener("pointerdown", onUserInteraction, { once: true, passive: true });
+    window.addEventListener("touchstart", onUserInteraction, { once: true, passive: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", onUserInteraction);
+      window.removeEventListener("touchstart", onUserInteraction);
+    };
+  }, [beforeImg, afterImg]);
 
   const notesList = activeProject?.notes?.length
     ? activeProject.notes
@@ -86,7 +108,7 @@ export function BeforeAfter() {
                 <button
                   key={v}
                   type="button"
-                  onClick={() => setView(v)}
+                  onClick={() => handleToggle(v)}
                   className={`relative rounded-full px-5 py-2 text-xs font-medium tracking-wide transition-colors duration-300 ${
                     view === v ? "text-primary-foreground" : "text-white/55"
                   }`}
@@ -104,65 +126,78 @@ export function BeforeAfter() {
             </div>
 
             <div className="relative mx-auto aspect-[9/16] w-full max-w-[19rem]">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={view}
-                  initial={{ opacity: 0, rotateY: 22, scale: 0.94, filter: "blur(10px)" }}
-                  animate={{ opacity: 1, rotateY: 0, scale: 1, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, rotateY: -22, scale: 0.94, filter: "blur(10px)" }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                  style={{ transformStyle: "preserve-3d" }}
-                  className="glass absolute inset-0 overflow-hidden rounded-[30px] p-1.5"
-                >
-                  <MediaDisplay
-                    src={view === "before" ? beforeImg : afterImg}
-                    poster={view === "before" ? MEDIA.baRawPoster : MEDIA.baEditPoster}
-                    alt={
-                      view === "before"
-                        ? "Standard unedited short-form clip"
-                        : "The same clip after my edit, with captions and grade"
-                    }
-                    className={`h-full w-full rounded-[24px] object-cover ${
-                      view === "before" ? "saturate-[0.7] brightness-[0.85]" : ""
-                    }`}
-                  />
-                  <div className="pointer-events-none absolute inset-1.5 rounded-[24px] bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                  {view === "after" && (
-                    <div className="pointer-events-none absolute inset-1.5 rounded-[24px] shadow-[inset_0_0_70px_-12px_rgba(47,211,198,0.55)]" />
-                  )}
+              <div
+                style={{ transformStyle: "preserve-3d" }}
+                className="glass relative h-full w-full overflow-hidden rounded-[30px] p-1.5 shadow-2xl"
+              >
+                {/* Before Video */}
+                <video
+                  ref={beforeVideoRef}
+                  src={beforeImg}
+                  poster={MEDIA.baRawPoster}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                  className={`absolute inset-1.5 h-[calc(100%-12px)] w-[calc(100%-12px)] rounded-[24px] object-cover transition-opacity duration-500 saturate-[0.7] brightness-[0.85] ${
+                    view === "before" ? "opacity-100 z-10" : "opacity-0 pointer-events-none z-0"
+                  }`}
+                  aria-label="Standard unedited short-form clip"
+                />
 
-                  <div className="absolute inset-x-4 bottom-4 flex items-center justify-between">
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-semibold tracking-widest uppercase ${
-                        view === "before"
-                          ? "bg-white/10 text-white/70"
-                          : "inner-glow bg-primary text-primary-foreground"
-                      }`}
-                    >
-                      {view === "before" ? (
-                        <>
-                          <X className="h-3 w-3" /> Raw
-                        </>
-                      ) : (
-                        <>
-                          <Check className="h-3 w-3" /> Edited
-                        </>
-                      )}
-                    </span>
-                    <span className="glass inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] text-white/70">
-                      <Eye className="h-3 w-3" />
-                      {view === "before"
-                        ? activeProject?.before_retention || "18% retention"
-                        : activeProject?.after_retention || "71% retention"}
-                    </span>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
+                {/* After Video */}
+                <video
+                  ref={afterVideoRef}
+                  src={afterImg}
+                  poster={MEDIA.baEditPoster}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                  className={`absolute inset-1.5 h-[calc(100%-12px)] w-[calc(100%-12px)] rounded-[24px] object-cover transition-opacity duration-500 ${
+                    view === "after" ? "opacity-100 z-10" : "opacity-0 pointer-events-none z-0"
+                  }`}
+                  aria-label="The same clip after my edit, with captions and grade"
+                />
+
+                <div className="pointer-events-none absolute inset-1.5 rounded-[24px] bg-gradient-to-t from-black/80 via-transparent to-transparent z-20" />
+                {view === "after" && (
+                  <div className="pointer-events-none absolute inset-1.5 rounded-[24px] shadow-[inset_0_0_70px_-12px_rgba(47,211,198,0.55)] z-20" />
+                )}
+
+                <div className="absolute inset-x-4 bottom-4 flex items-center justify-between z-30">
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-semibold tracking-widest uppercase ${
+                      view === "before"
+                        ? "bg-white/10 text-white/70"
+                        : "inner-glow bg-primary text-primary-foreground"
+                    }`}
+                  >
+                    {view === "before" ? (
+                      <>
+                        <X className="h-3 w-3" /> Raw
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-3 w-3" /> Edited
+                      </>
+                    )}
+                  </span>
+                  <span className="glass inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] text-white/70">
+                    <Eye className="h-3 w-3" />
+                    {view === "before"
+                      ? activeProject?.before_retention || "18% retention"
+                      : activeProject?.after_retention || "71% retention"}
+                  </span>
+                </div>
+              </div>
 
               <motion.div
                 animate={{ y: [0, -12, 0] }}
                 transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                className="glass inner-glow-soft absolute -right-6 top-8 hidden items-center gap-2 rounded-2xl px-3.5 py-2 sm:flex"
+                className="glass inner-glow-soft absolute -right-6 top-8 hidden items-center gap-2 rounded-2xl px-3.5 py-2 sm:flex z-30"
               >
                 <Zap className="h-4 w-4 text-[#7ef0e2]" />
                 <span className="text-[11px] font-medium">+53% watch time</span>

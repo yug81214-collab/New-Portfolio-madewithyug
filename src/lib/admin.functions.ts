@@ -765,47 +765,65 @@ export const publicSubmitBrief = createServerFn({ method: "POST" })
     }
 
     let emailSent = false;
-    try {
-      const serviceId = process.env["EMAILJS_SERVICE_ID"] || process.env["VITE_EMAILJS_SERVICE_ID"] || "";
-      const templateId = process.env["EMAILJS_TEMPLATE_ID"] || process.env["VITE_EMAILJS_TEMPLATE_ID"] || "";
-      const publicKey = process.env["EMAILJS_PUBLIC_KEY"] || process.env["VITE_EMAILJS_PUBLIC_KEY"] || "";
-      const privateKey = process.env["EMAILJS_PRIVATE_KEY"] || "";
+    const serviceId = process.env["EMAILJS_SERVICE_ID"] || process.env["VITE_EMAILJS_SERVICE_ID"] || "";
+    const templateId = process.env["EMAILJS_TEMPLATE_ID"] || process.env["VITE_EMAILJS_TEMPLATE_ID"] || "";
+    const publicKey = process.env["EMAILJS_PUBLIC_KEY"] || process.env["VITE_EMAILJS_PUBLIC_KEY"] || "";
+    const privateKey = process.env["EMAILJS_PRIVATE_KEY"] || "";
 
-      if (!serviceId || !templateId || !publicKey) {
-        throw new Error("EmailJS environment variables are missing");
-      }
+    const templateParams = {
+      name: data.name || "Not provided",
+      from_name: data.name || "Portfolio Visitor",
+      user_name: data.name || "Portfolio Visitor",
+      client_name: data.name || "Portfolio Visitor",
+      email: data.email || "Not provided",
+      from_email: data.email || "Not provided",
+      user_email: data.email || "Not provided",
+      reply_to: data.email || "jhayug29@gmail.com",
+      phone: data.phone || "Not provided",
+      phone_number: data.phone || "Not provided",
+      contact_number: data.phone || "Not provided",
+      company: data.company || "Not provided",
+      deadline: data.deadline || "Not provided",
+      video_type: data.video_type || "Not provided",
+      budget: data.budget || "Not provided",
+      reference: data.reference || "None",
+      description: data.description || "Not provided",
+      project_details: data.description || "Not provided",
+      message: `Project Type: ${data.video_type || "Not provided"}\nDeadline: ${data.deadline || "Not provided"}\nCompany: ${data.company || "Not provided"}\nPhone: ${data.phone || "Not provided"}\nReference: ${data.reference || "None"}\n\nProject Description:\n${data.description || "Not provided"}`,
+      to_name: "Yug",
+      to_email: "jhayug29@gmail.com",
+      subject: `New Project Brief from ${data.name || "Visitor"} (${data.video_type || "Video"})`,
+      title: "New project brief",
+    };
 
-      const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          service_id: serviceId,
-          template_id: templateId,
-          user_id: publicKey,
-          ...(privateKey ? { accessToken: privateKey } : {}),
-          template_params: {
-            name: data.name || "Not provided",
-            company: data.company || "Not provided",
-            email: data.email || "Not provided",
-            phone: data.phone || "Not provided",
-            deadline: data.deadline || "Not provided",
-            video_type: data.video_type || "Not provided",
-            budget: data.budget || "Not provided",
-            reference: data.reference || "Not provided",
-            description: data.description || "Not provided",
-            to_email: "jhayug29@gmail.com",
-            reply_to: data.email || "jhayug29@gmail.com",
-            from_name: data.name || "Portfolio Visitor",
-            title: "New project brief",
+    if (serviceId && templateId && publicKey) {
+      try {
+        const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (compatible; PortfolioBackend/1.0)",
           },
-        }),
-      });
+          body: JSON.stringify({
+            service_id: serviceId,
+            template_id: templateId,
+            user_id: publicKey,
+            ...(privateKey ? { accessToken: privateKey } : {}),
+            template_params: templateParams,
+          }),
+        });
 
-      const responseText = await response.text();
-      if (!response.ok) throw new Error(`EmailJS HTTP ${response.status}: ${responseText.slice(0, 500)}`);
-      emailSent = true;
-    } catch (emailError) {
-      console.error("[Contact] EmailJS notification failed:", emailError);
+        const responseText = await response.text();
+        if (response.ok) {
+          emailSent = true;
+        } else {
+          console.warn(`[Contact] EmailJS server HTTP ${response.status}: ${responseText.slice(0, 300)}`);
+        }
+      } catch (emailError) {
+        console.error("[Contact] EmailJS server notification failed:", emailError);
+      }
+    } else {
+      console.info("[Contact] EmailJS server env vars incomplete; deferring to client fallback if available.");
     }
 
     cmsStore.logAudit(
@@ -813,14 +831,24 @@ export const publicSubmitBrief = createServerFn({ method: "POST" })
       data.name,
       "CLIENT_BRIEF_SUBMITTED",
       "Client Contact Form",
-      emailSent ? "SUCCESS" : "FAILURE",
+      emailSent ? "SUCCESS" : "INFO",
       emailSent
         ? `New brief received from ${data.email}; EmailJS notification sent`
-        : `New brief received from ${data.email}; EmailJS notification failed`,
+        : `New brief received from ${data.email}; logged to CMS (email delivery pending or client fallback)`,
       sub.id,
     );
 
-    return { ok: true as const, id: sub.id, emailSent };
+    return {
+      ok: true as const,
+      id: sub.id,
+      emailSent,
+      config: {
+        serviceId: serviceId || undefined,
+        templateId: templateId || undefined,
+        publicKey: publicKey || undefined,
+      },
+      templateParams,
+    };
   });
 
 /* ------------------------------------------------------------- MEDIA LIBRARY */
